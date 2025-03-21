@@ -84,19 +84,19 @@ export default function PlaylistItem({
 
   return (
     <div 
-      className="playlist-item bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-xl shadow-md cursor-pointer border border-gray-200 dark:border-gray-700 group relative overflow-hidden flex items-center"
+      className="playlist-item bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-xl shadow-md cursor-pointer border border-gray-200 dark:border-gray-700 group relative overflow-hidden flex items-center transition-all sm:hover:bg-gray-50 sm:dark:hover:bg-gray-700"
       onClick={handleEdit}
     >
       
       {/* Content type badge (text, image, etc.) */}
-      <div className="item-type shrink-0">
-        <span className="type-label bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-full text-xs font-medium">
+      <div className="shrink-0">
+        <span className="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-4 py-2 py-0.5 rounded-sm text-xs font-medium uppercase">
           {getContentTypeLabel()}
         </span>
       </div>
       
       {/* Visual separator between type badge and content */}
-      <div className="item-divider mx-2 h-8 w-px bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+      <div className="mx-2 h-8 w-px bg-gray-200 dark:bg-gray-700 shrink-0"></div>
       
       {/* Main content area */}
       <div className="flex-grow flex flex-col w-[calc(100%-48px)]">
@@ -136,12 +136,12 @@ export default function PlaylistItem({
         
         {/* Expandable mobile action buttons */}
         <div 
-          className={`absolute top-0 right-0 flex h-full bg-white dark:bg-gray-800 shadow-md border-l border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${showMobileActions ? 'translate-x-0' : 'translate-x-full'} z-10`}
+          className={`absolute top-0 right-0 flex h-full bg-white dark:bg-gray-700 shadow-md border-l border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out ${showMobileActions ? 'translate-x-0' : 'translate-x-full'} z-10`}
           onClick={e => e.stopPropagation()}
         >
           {/* Move up button - disabled when item is at the top */}
           <button 
-            className={`flex items-center justify-center w-14 h-full border-r border-gray-200 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700 ${isFirst ? 'opacity-50 bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800'}`}
+            className={`flex items-center justify-center w-14 h-full border-r border-gray-200 dark:bg-gray-700 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700 ${isFirst ? 'opacity-50 bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800'}`}
             disabled={isFirst}
             onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
           >
@@ -151,7 +151,7 @@ export default function PlaylistItem({
           </button>
           {/* Move down button - disabled when item is at the bottom */}
           <button 
-            className={`flex items-center justify-center w-14 h-full border-r border-gray-200 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700 ${isLast ? 'opacity-50 bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800'}`}
+            className={`flex items-center justify-center w-14 h-full border-r border-gray-200 dark:bg-gray-700 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700 ${isLast ? 'opacity-50 bg-gray-50 dark:bg-gray-750' : 'bg-white dark:bg-gray-800'}`}
             disabled={isLast}
             onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
           >
@@ -161,7 +161,7 @@ export default function PlaylistItem({
           </button>
           {/* Remove item button */}
           <button 
-            className="flex items-center justify-center w-14 h-full bg-white dark:bg-gray-800 active:bg-red-50 dark:active:bg-red-900/20 text-red-500"
+            className="flex items-center justify-center w-14 h-full bg-white active:bg-red-50 dark:bg-gray-700 dark:active:bg-red-900/20 text-red-500"
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -170,7 +170,7 @@ export default function PlaylistItem({
           </button>
           {/* Close mobile actions menu */}
           <button 
-            className="flex items-center justify-center w-14 h-full border-l border-gray-200 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700"
+            className="flex items-center justify-center w-14 h-full border-l border-gray-200 dark:bg-gray-600 dark:border-gray-700 active:bg-gray-100 dark:active:bg-gray-700"
             onClick={toggleMobileActions}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

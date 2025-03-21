@@ -30,25 +30,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Playlist item styling */
+
 .playlist-item {
-  position: relative;
-  background-color: var(--item-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  margin-bottom: 10px;
-  padding: 15px;
-  padding-right: 138px; /* Space for buttons */
-  display: flex;
-  align-items: center;
   gap: 10px;
-  transition: background-color 0.2s, transform 0.1s;
-  cursor: pointer;
-  overflow: hidden;
+  padding: 20px 120px 20px 25px;
 }
 
 .playlist-item:hover {
-  background-color: var(--item-hover);
   transform: translateX(2px);
 }
 
@@ -171,6 +159,7 @@ body {
   line-height: normal;
 }
 
+/* Enhanced slider - keep this in global css since it's used in multiple places */
 .enhanced-slider {
   --slider-value: 50%;
   -webkit-appearance: none;
@@ -187,11 +176,11 @@ body {
 }
 
 .enhanced-slider:hover {
-  height: 10px;
+  height: 14px;
 }
 
 .enhanced-slider:focus {
-  height: 10px;
+  height: 14px;
 }
 
 .enhanced-slider::-webkit-slider-thumb {
@@ -269,43 +258,6 @@ body {
   margin: 10px 0;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .playlist-item {
-    padding-right: 110px;
-  }
-  
-  .item-action {
-    padding: 0 8px;
-  }
-}
-
-/* Debug panel improvements */
-.event-log {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
-
-.event-log::-webkit-scrollbar {
-  width: 6px;
-}
-
-.event-log::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.event-log::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-/* Improve pre tag text readability */
-pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.85em;
-  line-height: 1.4;
-}
-
 @media (max-width: 640px) {
   .mobile-no-hover:hover {
     transform: none !important;
@@ -323,6 +275,10 @@ pre {
 
 /* Override any other transform effects */
 @media (max-width: 640px) {
+  .playlist-item {
+    gap: 5px;
+    padding: 10px 0px 10px 20px;
+  }
   .playlist-item.mobile-no-movement {
     transform: none !important;
   }
@@ -371,10 +327,5 @@ pre {
   .playlist-item:active,
   .playlist-item:focus {
     transform: none !important;
-  }
-  
-  /* Keep the background color change for feedback */
-  .playlist-item:hover {
-    background-color: var(--item-hover);
   }
 }
