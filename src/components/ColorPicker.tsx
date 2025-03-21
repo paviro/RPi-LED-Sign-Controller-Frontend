@@ -86,7 +86,7 @@ export default function ColorPicker({ color, onChange }: ColorPickerProps) {
   };
   
   return (
-    <div className="color-picker m-2 mt-5 dark:bg-gray-950 rounded-xl overflow-visible">
+    <div className="color-picker m-2 mt-5 rounded-xl overflow-visible">
       <div className="flex flex-col md:flex-row gap-4 mb-4 ">
         {/* Main color picker area */}
         <div className="flex-1">

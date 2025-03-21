@@ -403,7 +403,7 @@ export default function TextEditor({
         {showColorPicker && (
           <div 
             ref={colorPickerRef}
-            className="absolute z-10 mt-16 ml-2 bg-white dark:bg-gray-950 p-4 rounded-xl shadow-xl border-2 border-indigo-200 dark:border-indigo-600"
+            className="absolute z-10 mt-16 ml-2 bg-white dark:bg-gray-900 p-4 rounded-xl shadow-xl border-2 border-indigo-200 dark:border-indigo-600"
             onClick={(e) => e.stopPropagation()}
             style={{ 
               minWidth: "320px",
