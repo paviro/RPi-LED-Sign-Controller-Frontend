@@ -66,7 +66,7 @@ export default function BrightnessControl({ brightness, onChange }: BrightnessCo
         </span>
         
         {/* Slider input with colored fill based on value */}
-        <div className="flex-grow relative h-10 flex items-center">
+        <div className="flex-grow relative h-3 flex items-center">
           <input
             ref={sliderRef}
             type="range"
