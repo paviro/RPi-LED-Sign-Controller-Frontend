@@ -1,0 +1,381 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary-color: #4F46E5;
+  --border-color: #e0e0e0;
+  --item-bg: #ffffff;
+  --item-hover: #f8f9fa;
+  --heading-color: #333333;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Playlist item styling */
+.playlist-item {
+  position: relative;
+  background-color: var(--item-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 10px;
+  padding: 15px;
+  padding-right: 138px; /* Space for buttons */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.2s, transform 0.1s;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.playlist-item:hover {
+  background-color: var(--item-hover);
+  transform: translateX(2px);
+}
+
+.item-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  height: 100%;
+}
+
+.item-action {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  transition: background-color 0.2s;
+}
+
+.item-action.edit {
+  background-color: #4F46E5;
+  color: white;
+  text-decoration: none;
+}
+
+.item-action.edit:hover {
+  background-color: #4338ca;
+}
+
+.item-action.up, .item-action.down {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.item-action.up:hover, .item-action.down:hover {
+  background-color: #dee2e6;
+}
+
+.item-action.delete {
+  background-color: #ef4444;
+  color: white;
+  font-size: 18px;
+}
+
+.item-action.delete:hover {
+  background-color: #dc2626;
+}
+
+.item-divider {
+  width: 1px;
+  height: 30px;
+  background-color: var(--border-color);
+  margin: 0 15px;
+  flex-shrink: 0;
+}
+
+.item-type {
+  min-width: 60px;
+  padding: 5px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  background-color: #e9ecef;
+  color: #495057;
+  flex-shrink: 0;
+}
+
+.type-label {
+  display: inline-block;
+  padding: 2px 8px;
+}
+
+.item-text {
+  flex-grow: 1;
+  flex-shrink: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 280px);
+  padding-right: 10px;
+}
+
+.item-details {
+  min-width: 150px;
+  max-width: 300px;
+  color: #666;
+  font-size: 14px;
+  text-align: right;
+  padding-right: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.primary-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.primary-button:hover {
+  background-color: #4338ca;
+}
+
+.button-link {
+  display: inline-block;
+  text-decoration: none;
+  line-height: normal;
+}
+
+.enhanced-slider {
+  --slider-value: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(to right, #4F46E5 0%, #4F46E5 var(--slider-value), #EEF2FF var(--slider-value), #EEF2FF 100%);
+  outline: none;
+  width: 100%;
+  margin: 0;
+  transition: height 0.2s ease;
+  cursor: pointer;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.enhanced-slider:hover {
+  height: 10px;
+}
+
+.enhanced-slider:focus {
+  height: 10px;
+}
+
+.enhanced-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 2px solid #4F46E5;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.enhanced-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 2px solid #4F46E5;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.enhanced-slider::-webkit-slider-thumb:hover,
+.enhanced-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+  background: #f8faff;
+}
+
+.enhanced-slider::-webkit-slider-thumb:active,
+.enhanced-slider::-moz-range-thumb:active {
+  transform: scale(1.15);
+  background: #4F46E5;
+  border-color: #ffffff;
+}
+
+.brightness-value {
+  background-color: #4F46E5;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+  transition: all 0.2s ease;
+  min-width: 60px;
+  text-align: center;
+}
+
+.brightness-value:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(79, 70, 229, 0.4);
+}
+
+.brightness-icons svg {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.brightness-icons svg:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.empty-playlist-message {
+  padding: 20px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  color: #666;
+}
+
+.empty-playlist-message p {
+  margin: 10px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .playlist-item {
+    padding-right: 110px;
+  }
+  
+  .item-action {
+    padding: 0 8px;
+  }
+}
+
+/* Debug panel improvements */
+.event-log {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.event-log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.event-log::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.event-log::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+/* Improve pre tag text readability */
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .mobile-no-hover:hover {
+    transform: none !important;
+  }
+}
+
+/* Add these comprehensive rules to prevent ALL movement on mobile */
+.mobile-no-movement,
+.mobile-no-movement:hover,
+.mobile-no-movement:active,
+.mobile-no-movement:focus {
+  transform: none !important;
+  transition: background-color 0.2s !important;
+}
+
+/* Override any other transform effects */
+@media (max-width: 640px) {
+  .playlist-item.mobile-no-movement {
+    transform: none !important;
+  }
+  
+  .playlist-item.mobile-no-movement:hover,
+  .playlist-item.mobile-no-movement:active,
+  .playlist-item.mobile-no-movement:focus {
+    transform: none !important;
+  }
+}
+
+/* Completely disable all transitions and transforms on mobile */
+.no-transitions {
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+.no-transitions:hover,
+.no-transitions:active,
+.no-transitions:focus {
+  transition: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+/* Ensure background color changes work without transitions */
+.no-transitions:hover {
+  background-color: var(--item-hover);
+}
+
+/* Override any transform-related styles from the original CSS */
+.playlist-item.no-transitions:hover {
+  transform: none !important;
+}
+
+/* Target mobile screens only */
+@media (max-width: 640px) {
+  /* Disable transitions completely */
+  .playlist-item {
+    transition: none !important;
+  }
+  
+  /* Override all transform effects */
+  .playlist-item:hover,
+  .playlist-item:active,
+  .playlist-item:focus {
+    transform: none !important;
+  }
+  
+  /* Keep the background color change for feedback */
+  .playlist-item:hover {
+    background-color: var(--item-hover);
+  }
+}
