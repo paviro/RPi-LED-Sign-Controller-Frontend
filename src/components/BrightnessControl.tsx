@@ -42,7 +42,7 @@ export default function BrightnessControl({ brightness, onChange }: BrightnessCo
   };
   
   return (
-    <section className="brightness-control-section mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+    <div className="brightness-control">
       {/* Header with icon and description */}
       <div className="flex items-center mb-6">
         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg mr-3">
@@ -92,6 +92,6 @@ export default function BrightnessControl({ brightness, onChange }: BrightnessCo
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 } 
