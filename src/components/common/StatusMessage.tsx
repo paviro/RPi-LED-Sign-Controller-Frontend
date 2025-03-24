@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StatusMessageProps } from '../types';
+import { StatusMessageProps } from '../../types';
 
 /**
  * StatusMessage component displays temporary notifications with different styling based on type (error, success, info).

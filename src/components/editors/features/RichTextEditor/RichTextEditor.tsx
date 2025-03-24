@@ -6,7 +6,7 @@ import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { useEffect, useCallback, useState, useRef } from 'react';
-import ColorPicker from './ColorPicker';
+import ColorPicker from '../../common/ColorPicker';
 
 /**
  * TextEditor component provides a rich text editor with color formatting capabilities

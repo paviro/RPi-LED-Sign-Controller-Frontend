@@ -7,11 +7,11 @@ import {
   updatePlaylistOrder, 
   fetchBrightness, 
   updateBrightnessSimple 
-} from '../lib/api';
+} from '../../lib/api';
 import PlaylistItem from './PlaylistItem';
-import BrightnessControl from './BrightnessControl';
-import StatusMessage from './StatusMessage';
-import { PlaylistItem as PlaylistItemType } from '../types';
+import BrightnessControl from './controls/BrightnessControl';
+import StatusMessage from '../common/StatusMessage';
+import { PlaylistItem as PlaylistItemType } from '../../types';
 
 interface PlaylistViewProps {
   onEditItem: (itemId?: string) => void;

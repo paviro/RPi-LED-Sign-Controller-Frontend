@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlaylistItem as PlaylistItemType } from '../types';
+import { PlaylistItem as PlaylistItemType } from '../../types';
 
 interface PlaylistItemProps {
   item: PlaylistItemType;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ColorPicker from './ColorPicker';
+import ColorPicker from '../../common/ColorPicker';
 
 interface BorderEffectSelectorProps {
   selectedEffect: string;

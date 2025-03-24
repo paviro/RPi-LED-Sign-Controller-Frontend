@@ -5,12 +5,13 @@ import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 // Use dynamic imports to prevent hydration issues
-const PlaylistView = dynamic(() => import('../components/PlaylistView'), {
+const PlaylistView = dynamic(() => import('../components/playlist/PlaylistView'), {
   ssr: false,
   loading: () => <div className="text-center py-12 animate-pulse">Loading playlist view...</div>
 });
 
-const EditorContent = dynamic(() => import('../components/EditorContent'), {
+// Update this import to use the new EditorFactory
+const EditorFactory = dynamic(() => import('../components/editors/EditorFactory'), {
   ssr: false,
   loading: () => <div className="text-center py-12 animate-pulse">Loading editor...</div>
 });
@@ -52,7 +53,7 @@ export default function HomePage() {
         {currentView === 'playlist' ? (
           <PlaylistView onEditItem={switchToEditor} onAddNewItem={() => switchToEditor()} />
         ) : (
-          <EditorContent itemId={editingItemId} onBack={switchToPlaylist} />
+          <EditorFactory itemId={editingItemId} onBack={switchToPlaylist} />
         )}
       </Suspense>
     </main>
