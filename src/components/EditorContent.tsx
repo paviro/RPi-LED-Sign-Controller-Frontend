@@ -27,7 +27,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     text: '',
     scroll: false,
     color: [255, 255, 255],
-    speed: 5,
+    speed: 50,
     duration: 10,
     repeat_count: 1,
     border_effect: { None: null },
@@ -351,275 +351,279 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   }
   
   return (
-    <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-          <span className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg mr-3 text-indigo-500">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-            </svg>
-          </span>
-          {isNewItem ? 'Add New Message' : 'Edit Message'}
-        </h2>
-        <button 
-          onClick={onBack}
-          className="flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        >
-          ← Back to Playlist
-        </button>
-      </div>
-      
-      {/* Updated field styling */}
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center">
-          <span className="p-1 bg-indigo-100 dark:bg-indigo-900/20 rounded mr-2 text-indigo-500">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
-            </svg>
-          </span>
-          Message Text
-        </h3>
-        <TextEditor 
-          initialValue={formData.text || ''}
-          onChange={(text) => setFormData(prev => ({ ...prev, text }))}
-          onSegmentsChange={handleTextSegmentsChange}
-          selectedColor={selectedColor}
-          onColorChange={handleColorChange}
-          coloredSegments={textSegments}
-        />
-      </div>
-      
-      {/* Improved scroll checkbox with better functionality */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-6 my-6">
-        <div className="flex items-center mb-5">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              id="scroll"
-              name="scroll"
-              checked={formData.scroll}
-              onChange={(e) => {
-                // Explicitly handle the toggle to ensure state updates properly
-                const isChecked = e.target.checked;
-                setFormData(prev => ({ ...prev, scroll: isChecked }));
-              }}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-            <span className="ml-3 font-medium text-gray-800 dark:text-gray-200">Scroll Text</span>
-          </label>
-          <div className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-            (Scrolling text moves across the display)
-          </div>
+    <div className="space-y-5">
+      {/* Title Bar */}
+      <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 flex items-center">
+            <span className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg mr-3 text-indigo-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+            </span>
+            {isNewItem ? 'Add New Item' : 'Edit Item'}
+          </h2>
+          <button 
+            onClick={onBack}
+            className="flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            ← Back to Playlist
+          </button>
         </div>
+      </section>
 
-        {/* Scroll controls with animation */}
-        <div 
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
-        >
-          {/* Scroll Speed */}
-          <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Scroll Speed:</label>
-            <div className="grid grid-cols-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-              <button 
-                onClick={() => handleSpeedPresetChange('slow')}
-                className={`py-3 text-center transition-colors ${speedPreset === 'slow' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-              >
-                Slow
-              </button>
-              <button 
-                onClick={() => handleSpeedPresetChange('normal')}
-                className={`py-3 text-center transition-colors ${speedPreset === 'normal' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-              >
-                Normal
-              </button>
-              <button 
-                onClick={() => handleSpeedPresetChange('fast')}
-                className={`py-3 text-center transition-colors ${speedPreset === 'fast' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-              >
-                Fast
-              </button>
-              <button 
-                onClick={() => handleSpeedPresetChange('custom')}
-                className={`py-3 text-center transition-colors ${speedPreset === 'custom' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-              >
-                Custom
-              </button>
+      <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">        
+        {/* Updated field styling */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center">
+            <span className="p-1 bg-indigo-100 dark:bg-indigo-900/20 rounded mr-2 text-indigo-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+            </span>
+            Message Text
+          </h3>
+          <TextEditor 
+            initialValue={formData.text || ''}
+            onChange={(text) => setFormData(prev => ({ ...prev, text }))}
+            onSegmentsChange={handleTextSegmentsChange}
+            selectedColor={selectedColor}
+            onColorChange={handleColorChange}
+            coloredSegments={textSegments}
+          />
+        </div>
+        
+        {/* Improved scroll checkbox with better functionality */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 my-6">
+          <div className="flex items-center mb-5">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                id="scroll"
+                name="scroll"
+                checked={formData.scroll}
+                onChange={(e) => {
+                  // Explicitly handle the toggle to ensure state updates properly
+                  const isChecked = e.target.checked;
+                  setFormData(prev => ({ ...prev, scroll: isChecked }));
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              <span className="ml-3 font-medium text-gray-800 dark:text-gray-200">Scroll Text</span>
+            </label>
+            <div className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+              (Scrolling text moves across the display)
             </div>
-            
-            {/* Only show slider for custom with enhanced animation - fixed layout */}
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${speedPreset === 'custom' ? 'max-h-24 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-              <div className="flex items-center gap-4 h-10">
-                <div className="relative flex-grow flex items-center">
-                  <input
-                    type="range"
-                    name="speed"
-                    min="10"
-                    max="250"
-                    value={formData.speed || 50}
-                    onChange={(e) => {
-                      // Get the value
-                      const value = parseInt(e.target.value);
-                      
-                      // Update the CSS variable for the track fill directly on the element
-                      const percentage = ((value - 10) / (250 - 10)) * 100;
-                      e.target.style.setProperty('--slider-value', `${percentage}%`);
-                      
-                      // Update the state
-                      handleInputChange(e);
-                      setSpeedPresetState('custom');
-                    }}
-                    style={{ '--slider-value': `${((formData.speed || 50) - 10) / (250 - 10) * 100}%` } as React.CSSProperties}
-                    className="enhanced-slider appearance-none cursor-pointer w-full"
-                  />
+          </div>
+
+          {/* Scroll controls with animation */}
+          <div 
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
+          >
+            {/* Scroll Speed */}
+            <div className="mb-6">
+              <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Scroll Speed:</label>
+              <div className="grid grid-cols-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                <button 
+                  onClick={() => handleSpeedPresetChange('slow')}
+                  className={`py-3 text-center transition-colors ${speedPreset === 'slow' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                  Slow
+                </button>
+                <button 
+                  onClick={() => handleSpeedPresetChange('normal')}
+                  className={`py-3 text-center transition-colors ${speedPreset === 'normal' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                  Normal
+                </button>
+                <button 
+                  onClick={() => handleSpeedPresetChange('fast')}
+                  className={`py-3 text-center transition-colors ${speedPreset === 'fast' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                  Fast
+                </button>
+                <button 
+                  onClick={() => handleSpeedPresetChange('custom')}
+                  className={`py-3 text-center transition-colors ${speedPreset === 'custom' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                  Custom
+                </button>
+              </div>
+              
+              {/* Only show slider for custom with enhanced animation - fixed layout */}
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${speedPreset === 'custom' ? 'max-h-24 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                <div className="flex items-center gap-4 h-10">
+                  <div className="relative flex-grow flex items-center">
+                    <input
+                      type="range"
+                      name="speed"
+                      min="10"
+                      max="250"
+                      value={formData.speed || 50}
+                      onChange={(e) => {
+                        // Get the value
+                        const value = parseInt(e.target.value);
+                        
+                        // Update the CSS variable for the track fill directly on the element
+                        const percentage = ((value - 10) / (250 - 10)) * 100;
+                        e.target.style.setProperty('--slider-value', `${percentage}%`);
+                        
+                        // Update the state
+                        handleInputChange(e);
+                        setSpeedPresetState('custom');
+                      }}
+                      style={{ '--slider-value': `${((formData.speed || 50) - 10) / (250 - 10) * 100}%` } as React.CSSProperties}
+                      className="enhanced-slider appearance-none cursor-pointer w-full"
+                    />
+                  </div>
+                  <div className="brightness-value whitespace-nowrap">
+                    {formData.speed || 50} px/sec
+                  </div>
                 </div>
-                <div className="brightness-value whitespace-nowrap">
-                  {formData.speed || 50} px/sec
-                </div>
+              </div>
+            </div>
+
+            {/* Number of Repeats with direct input */}
+            <div className="mb-6">
+              <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Number of Repeats:</label>
+              <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-2">
+                <button 
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    repeat_count: Math.max(1, (prev.repeat_count || 1) - 1) 
+                  }))}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg mr-2 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <input
+                  type="number"
+                  name="repeat_count"
+                  value={formData.repeat_count || 1}
+                  onChange={(e) => {
+                    // Ensure we have a valid positive integer
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value >= 1) {
+                      setFormData(prev => ({ ...prev, repeat_count: value }));
+                    } else if (e.target.value === '') {
+                      // Allow empty input while typing, but set to 1 on blur
+                      setFormData(prev => ({ ...prev, repeat_count: 1 }));
+                    }
+                  }}
+                  onBlur={() => {
+                    // Ensure we don't allow empty or invalid values after blur
+                    if (!formData.repeat_count || formData.repeat_count < 1) {
+                      setFormData(prev => ({ ...prev, repeat_count: 1 }));
+                    }
+                  }}
+                  min="1"
+                  className="w-16 h-10 text-center bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-600 rounded font-medium text-gray-800 dark:text-gray-200 text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                
+                <button 
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    repeat_count: (prev.repeat_count || 1) + 1 
+                  }))}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg ml-2 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <span className="ml-4 text-gray-700 dark:text-gray-300">times</span>
               </div>
             </div>
           </div>
 
-          {/* Number of Repeats with direct input */}
-          <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Number of Repeats:</label>
-            <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-2">
-              <button 
-                onClick={() => setFormData(prev => ({ 
-                  ...prev, 
-                  repeat_count: Math.max(1, (prev.repeat_count || 1) - 1) 
-                }))}
-                className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg mr-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-              
-              <input
-                type="number"
-                name="repeat_count"
-                value={formData.repeat_count || 1}
-                onChange={(e) => {
-                  // Ensure we have a valid positive integer
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 1) {
-                    setFormData(prev => ({ ...prev, repeat_count: value }));
-                  } else if (e.target.value === '') {
-                    // Allow empty input while typing, but set to 1 on blur
-                    setFormData(prev => ({ ...prev, repeat_count: 1 }));
-                  }
-                }}
-                onBlur={() => {
-                  // Ensure we don't allow empty or invalid values after blur
-                  if (!formData.repeat_count || formData.repeat_count < 1) {
-                    setFormData(prev => ({ ...prev, repeat_count: 1 }));
-                  }
-                }}
-                min="1"
-                className="w-16 h-10 text-center bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-600 rounded font-medium text-gray-800 dark:text-gray-200 text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              
-              <button 
-                onClick={() => setFormData(prev => ({ 
-                  ...prev, 
-                  repeat_count: (prev.repeat_count || 1) + 1 
-                }))}
-                className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg ml-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-              
-              <span className="ml-4 text-gray-700 dark:text-gray-300">times</span>
+          {/* Static duration control with direct input */}
+          <div 
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${!formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
+          >
+            <div className="mb-6">
+              <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Duration (seconds):</label>
+              <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-2">
+                <button 
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    duration: Math.max(1, (prev.duration || 10) - 1) 
+                  }))}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg mr-2 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <input
+                  type="number"
+                  name="duration"
+                  value={formData.duration || 10}
+                  onChange={(e) => {
+                    // Ensure we have a valid positive number
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value >= 1) {
+                      setFormData(prev => ({ ...prev, duration: value }));
+                    } else if (e.target.value === '') {
+                      // Allow empty input while typing, but set to 10 on blur
+                      setFormData(prev => ({ ...prev, duration: 10 }));
+                    }
+                  }}
+                  onBlur={() => {
+                    // Ensure we don't allow empty or invalid values after blur
+                    if (!formData.duration || formData.duration < 1) {
+                      setFormData(prev => ({ ...prev, duration: 10 }));
+                    }
+                  }}
+                  min="1"
+                  className="w-16 h-10 text-center bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-600 rounded font-medium text-gray-800 dark:text-gray-200 text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                
+                <button 
+                  onClick={() => setFormData(prev => ({ 
+                    ...prev, 
+                    duration: (prev.duration || 10) + 1 
+                  }))}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg ml-2 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <span className="ml-4 text-gray-700 dark:text-gray-300">seconds</span>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Static duration control with direct input */}
-        <div 
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${!formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
-        >
-          <div className="mb-6">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Duration (seconds):</label>
-            <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-2">
-              <button 
-                onClick={() => setFormData(prev => ({ 
-                  ...prev, 
-                  duration: Math.max(1, (prev.duration || 10) - 1) 
-                }))}
-                className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg mr-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-              
-              <input
-                type="number"
-                name="duration"
-                value={formData.duration || 10}
-                onChange={(e) => {
-                  // Ensure we have a valid positive number
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 1) {
-                    setFormData(prev => ({ ...prev, duration: value }));
-                  } else if (e.target.value === '') {
-                    // Allow empty input while typing, but set to 10 on blur
-                    setFormData(prev => ({ ...prev, duration: 10 }));
-                  }
-                }}
-                onBlur={() => {
-                  // Ensure we don't allow empty or invalid values after blur
-                  if (!formData.duration || formData.duration < 1) {
-                    setFormData(prev => ({ ...prev, duration: 10 }));
-                  }
-                }}
-                min="1"
-                className="w-16 h-10 text-center bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-600 rounded font-medium text-gray-800 dark:text-gray-200 text-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              
-              <button 
-                onClick={() => setFormData(prev => ({ 
-                  ...prev, 
-                  duration: (prev.duration || 10) + 1 
-                }))}
-                className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg ml-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-              
-              <span className="ml-4 text-gray-700 dark:text-gray-300">seconds</span>
-            </div>
-          </div>
+        
+        {/* Border Effects */}
+        <div className="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">Border Effect</h3>
+          <BorderEffectSelector
+            selectedEffect={selectedBorderEffect}
+            onEffectChange={handleBorderEffectChange}
+            gradientColors={gradientColors}
+            onGradientColorChange={handleGradientColorEdit}
+            onAddGradientColor={handleAddGradientColor}
+            onRemoveGradientColor={handleRemoveGradientColor}
+          />
         </div>
-      </div>
-      
-      {/* Border Effects */}
-      <div className="mb-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-        <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">Border Effect</h3>
-        <BorderEffectSelector
-          selectedEffect={selectedBorderEffect}
-          onEffectChange={handleBorderEffectChange}
-          gradientColors={gradientColors}
-          onGradientColorChange={handleGradientColorEdit}
-          onAddGradientColor={handleAddGradientColor}
-          onRemoveGradientColor={handleRemoveGradientColor}
-        />
-      </div>
-      
-      {status && (
-        <StatusMessage
-          status={status}
-          onClose={() => setStatus(null)}
-        />
-      )}
-
-      {/* Move action buttons to the bottom of the form */}
-      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        
+        {status && (
+          <StatusMessage
+            status={status}
+            onClose={() => setStatus(null)}
+          />
+        )}
+      </section>
+      <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+        {/* Move action buttons to the bottom of the form */}
         <div className="flex space-x-3">
           <button
             onClick={handleSave}
@@ -650,7 +654,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             Cancel
           </button>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 } 
