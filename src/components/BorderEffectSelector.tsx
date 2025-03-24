@@ -37,11 +37,11 @@ export default function BorderEffectSelector({
   
   // Effect options
   const effects = [
-    { id: 'none', label: 'None', icon: '-' },
+    { id: 'none', label: 'None', icon: '❌' },
     { id: 'rainbow', label: 'Rainbow', icon: '🌈' },
     { id: 'pulse', label: 'Pulse', icon: '💓' },
     { id: 'sparkle', label: 'Sparkle', icon: '✨' },
-    { id: 'gradient', label: 'Gradient', icon: '🎨' }
+    { id: 'gradient', label: 'Gradient | Color', icon: '🎨' }
   ];
   
   /**

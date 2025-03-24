@@ -1,9 +1,11 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import Underline from '@tiptap/extension-underline';
+import Strike from '@tiptap/extension-strike';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import ColorPicker from './ColorPicker';
 
@@ -14,10 +16,10 @@ import ColorPicker from './ColorPicker';
 interface TextEditorProps {
   initialValue: string;
   onChange: (text: string) => void;
-  onSegmentsChange: (segments: Array<{start: number; end: number; text: string; color: [number, number, number]}>) => void;
+  onSegmentsChange: (segments: Array<{start: number; end: number; color?: [number, number, number]; formatting?: {bold?: boolean; strikethrough?: boolean; underline?: boolean}}>) => void;
   selectedColor: [number, number, number];
   onColorChange?: (color: [number, number, number]) => void;
-  coloredSegments?: Array<{start: number; end: number; text: string; color: [number, number, number]}>;
+  textSegments?: Array<{start: number; end: number; color?: [number, number, number]; formatting?: {bold?: boolean; strikethrough?: boolean; underline?: boolean}}>;
 }
 
 // Styling for LED-style display and editor controls
@@ -44,7 +46,7 @@ export default function TextEditor({
   onSegmentsChange, 
   selectedColor,
   onColorChange,
-  coloredSegments = [] 
+  textSegments = [] 
 }: TextEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,11 @@ export default function TextEditor({
   
   // Flag to prevent recursive color application
   const applyingColorRef = useRef(false);
+  
+  // Track active formatting states
+  const [isBold, setIsBold] = useState(false);
+  const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
   
   // Handle clicks outside the color picker to close it
   useEffect(() => {
@@ -81,9 +88,28 @@ export default function TextEditor({
   // Initialize Tiptap editor with required extensions and event handlers
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Configure to not override other marks when toggling marks
+        bold: {
+          HTMLAttributes: {
+            class: 'editor-bold',
+          },
+        },
+        strike: {
+          HTMLAttributes: {
+            class: 'editor-strike',
+          },
+        },
+        italic: false
+      }),
       TextStyle,
-      Color
+      Color,
+      Underline.configure({
+        HTMLAttributes: {
+          class: 'editor-underline',
+        },
+      }),
+      Strike
     ],
     content: initialValue,
     parseOptions: {
@@ -93,6 +119,13 @@ export default function TextEditor({
       const text = editor.getText();
       onChange(text);
       processColorSegmentsWithSpaces(editor.getHTML());
+
+      // Update formatting states based on current selection
+      updateFormattingStates(editor);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Update the formatting states when selection changes
+      updateFormattingStates(editor);
     },
     onFocus: () => {
       isEditorFocused.current = true;
@@ -128,44 +161,119 @@ export default function TextEditor({
     }
   });
 
+  // Helper function to update formatting button states
+  const updateFormattingStates = useCallback((editor: Editor) => {
+    if (!editor) return;
+    
+    setIsBold(editor.isActive('bold'));
+    setIsStrikethrough(editor.isActive('strike'));
+    setIsUnderline(editor.isActive('underline'));
+  }, []);
+
   /**
-   * Process HTML content to extract color segments for LED display
-   * Parses DOM nodes from editor HTML to identify colored text segments
+   * Process HTML content to extract text segments for LED display
+   * Parses DOM nodes from editor HTML to identify colored and formatted text segments
    */
   const processColorSegmentsWithSpaces = useCallback((html: string) => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     
-    const segments: Array<{start: number; end: number; text: string; color: [number, number, number]}> = [];
+    const segments: Array<{start: number; end: number; color?: [number, number, number]; formatting?: {bold?: boolean; strikethrough?: boolean; underline?: boolean}}> = [];
     let currentIndex = 0;
     
-    // Process DOM nodes recursively to extract text and color information
+    // Process DOM nodes recursively to extract text and formatting information
     const processNode = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE && node.textContent !== null) {
-        let color: [number, number, number] = [255, 255, 255]; // Default white
+        // Check for parent node and any ancestor formatting
+        const parentElement = node.parentElement;
+        let isBold = false;
+        let isStrikethrough = false;
+        let isUnderlined = false;
+        let textColor: [number, number, number] | undefined = undefined;
         
-        // Get color from inline style
-        if (node.parentElement?.style.color) {
-          const colorStr = node.parentElement.style.color;
-          const rgbMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+        // Check for formatting in the current node and its ancestors
+        if (parentElement) {
+          // First check for directly applied color
+          if (parentElement.style.color) {
+            const colorStr = parentElement.style.color;
+            const rgbMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            
+            if (rgbMatch) {
+              textColor = [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+            }
+          }
           
-          if (rgbMatch) {
-            color = [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+          // Check current node and its ancestors for formatting
+          let currentElement: Element | null = parentElement;
+          while (currentElement) {
+            // Check for bold
+            if (!isBold) {
+              isBold = window.getComputedStyle(currentElement).fontWeight === 'bold' || 
+                       currentElement.tagName === 'STRONG' || 
+                       currentElement.tagName === 'B';
+            }
+            
+            // Check for strikethrough
+            if (!isStrikethrough) {
+              isStrikethrough = window.getComputedStyle(currentElement).textDecoration.includes('line-through') || 
+                             currentElement.tagName === 'S' || 
+                             currentElement.tagName === 'STRIKE' || 
+                             currentElement.tagName === 'DEL';
+            }
+            
+            // Check for underline
+            if (!isUnderlined) {
+              isUnderlined = window.getComputedStyle(currentElement).textDecoration.includes('underline') || 
+                             currentElement.tagName === 'U';
+            }
+            
+            // Check for color if not found yet
+            if (!textColor && currentElement instanceof HTMLElement && currentElement.style.color) {
+              const colorStr = currentElement.style.color;
+              const rgbMatch = colorStr.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+              
+              if (rgbMatch) {
+                textColor = [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+              }
+            }
+            
+            // Move up to parent element
+            currentElement = currentElement.parentElement;
           }
         }
         
+        const segment: {
+          start: number;
+          end: number;
+          color?: [number, number, number];
+          formatting?: {
+            bold?: boolean;
+            strikethrough?: boolean;
+            underline?: boolean;
+          };
+        } = {
+          start: currentIndex,
+          end: currentIndex + node.textContent.length
+        };
+        
+        // Set color if found
+        if (textColor) {
+          segment.color = textColor;
+        }
+        
+        // Add formatting if any is detected
+        if (isBold || isStrikethrough || isUnderlined) {
+          segment.formatting = {
+            ...(isBold && { bold: true }),
+            ...(isStrikethrough && { strikethrough: true }),
+            ...(isUnderlined && { underline: true })
+          };
+        }
+        
         const text = node.textContent;
-        const start = currentIndex;
-        const end = currentIndex + text.length;
+        currentIndex += text.length;
         
-        segments.push({
-          start,
-          end,
-          text,
-          color
-        });
-        
-        currentIndex = end;
+        segments.push(segment);
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         // Process child nodes
         node.childNodes.forEach(child => processNode(child));
@@ -179,21 +287,80 @@ export default function TextEditor({
   }, [onSegmentsChange]);
   
   /**
-   * Apply selected color to the currently selected text
-   * Uses Tiptap's setColor/unsetColor commands
+   * Helper function to preserve and restore text selection
+   */
+  const withPreservedSelection = useCallback((operation: () => void) => {
+    if (!editor) return;
+    
+    // Store current selection
+    const { from, to } = editor.state.selection;
+    const hasSelection = from !== to;
+    
+    // Save for later use if needed
+    if (hasSelection) {
+      lastSelectionRef.current = { from, to };
+      hasSelectionRef.current = true;
+    }
+    
+    // Perform the operation
+    operation();
+    
+    // Restore selection after the editor updates
+    if (hasSelection) {
+      setTimeout(() => {
+        if (editor) {
+          editor.commands.setTextSelection({ from, to });
+        }
+      }, 10);
+    }
+  }, [editor]);
+
+  /**
+   * Apply formatting to selected text while preserving selection and other formatting
+   */
+  const toggleFormat = useCallback((format: 'bold' | 'strike' | 'underline') => {
+    if (!editor) return;
+    
+    withPreservedSelection(() => {
+      // Check if mark is active and apply the appropriate action
+      const isActive = editor.isActive(format);
+      
+      if (isActive) {
+        editor.chain().focus().unsetMark(format).run();
+      } else {
+        editor.chain().focus().setMark(format).run();
+      }
+      
+      // Update UI state based on the new state
+      switch (format) {
+        case 'bold':
+          setIsBold(editor.isActive('bold'));
+          break;
+        case 'strike':
+          setIsStrikethrough(editor.isActive('strike'));
+          break;
+        case 'underline':
+          setIsUnderline(editor.isActive('underline'));
+          break;
+      }
+    });
+  }, [editor, withPreservedSelection]);
+
+  /**
+   * Apply color to selected text while preserving selection and formatting
    */
   const applyColor = useCallback((color: [number, number, number]) => {
     if (!editor) return;
-
+    
     // Prevent multiple rapid updates
     if (applyingColorRef.current) return;
     applyingColorRef.current = true;
-
+    
     if (onColorChange) {
       onColorChange(color);
     }
-
-    // Use saved selection if available
+    
+    // Resolve selection
     let from: number, to: number;
     if (hasSelectionRef.current && lastSelectionRef.current) {
       from = lastSelectionRef.current.from;
@@ -203,164 +370,313 @@ export default function TextEditor({
       from = selection.from;
       to = selection.to;
     }
-
+    
     if (from === to) {
       applyingColorRef.current = false;
       return;
     }
-
-    const hexColor = rgbToHex(color);
-
-    editor.commands.focus();
-    editor.commands.setTextSelection({ from, to });
-
-    if (hexColor === "#ffffff") {
-      // unsetColor to revert to default
-      editor.chain().focus().setColor('#ffffff').unsetColor().run();
-    } else {
-      // Use Tiptap's setColor for partial selection
-      editor.chain().focus().setColor(hexColor).run();
-    }
+    
+    withPreservedSelection(() => {
+      const hexColor = rgbToHex(color);
+      
+      editor.commands.focus();
+      editor.commands.setTextSelection({ from, to });
+      
+      // Apply color formatting
+      if (hexColor === "#ffffff") {
+        editor.chain().focus().unsetColor().run();
+      } else {
+        editor.chain().focus().setColor(hexColor).run();
+      }
+    });
     
     // Reset flag after a short delay
     setTimeout(() => {
       applyingColorRef.current = false;
     }, 50);
-  }, [editor, onColorChange]);
-  
+  }, [editor, onColorChange, withPreservedSelection]);
+
   /**
-   * Apply rainbow gradient effect to selected text character by character
-   * Creates a smooth transition across all rainbow colors
+   * Helper functions to generate rainbow HTML
    */
-  const applyRainbowText = useCallback(() => {
-    if (!editor) return;
+  // Define the rainbow HTML generation functions first
+  const generateCharacterRainbowHtml = useCallback((
+    text: string,
+    rainbowColors: Array<[number, number, number]>,
+    relevantSegments: typeof textSegments,
+    startPosition: number
+  ) => {
+    const characters = Array.from(text);
     
-    const { from, to } = editor.state.selection;
-    if (from === to) {
-      alert('Please select some text first');
-      return;
+    // Group characters by their formatting
+    interface CharGroup {
+      chars: string[];
+      formatting: {
+        bold?: boolean;
+        strikethrough?: boolean;
+        underline?: boolean;
+      } | null;
+      startColor: number;
     }
     
-    const selectedText = editor.state.doc.textBetween(from, to);
-    // Define colors for rainbow gradient
-    const rainbowColors = [
-      [255, 0, 0],    // Red
-      [255, 165, 0],  // Orange
-      [255, 255, 0],  // Yellow
-      [0, 255, 0],    // Green
-      [0, 0, 255],    // Blue
-      [75, 0, 130],   // Indigo
-      [238, 130, 238] // Violet
-    ];
+    const charGroups: CharGroup[] = [];
+    let currentGroup: CharGroup | null = null;
     
-    editor.chain().focus().deleteSelection().run();
-    
-    let html = '';
-    const characters = Array.from(selectedText);
-    
-    // Calculate gradient colors for each character based on its position in the text
-    characters.forEach((char, index) => {
-      // Calculate normalized position (0-1) within the text
-      const position = characters.length > 1 ? index / (characters.length - 1) : 0;
+    // Group characters by formatting
+    for (let i = 0; i < characters.length; i++) {
+      const position = startPosition + i;
+      const char = characters[i];
       
-      // Calculate position within the rainbow color array
-      const segment = position * (rainbowColors.length - 1);
-      const segmentIndex = Math.floor(segment);
-      const segmentPosition = segment - segmentIndex;
+      // Find segment this character belongs to
+      const segment = relevantSegments.find(seg => 
+        position >= seg.start && position < seg.end
+      );
       
-      // Get the two colors to interpolate between
-      const color1 = rainbowColors[segmentIndex];
-      const color2 = rainbowColors[Math.min(segmentIndex + 1, rainbowColors.length - 1)];
+      // Determine if this needs a new group
+      const isNewGroup = !currentGroup || 
+        JSON.stringify(currentGroup.formatting) !== JSON.stringify(segment?.formatting);
       
-      // Interpolate between the two colors
-      const color: [number, number, number] = [
-        Math.round(color1[0] + (color2[0] - color1[0]) * segmentPosition),
-        Math.round(color1[1] + (color2[1] - color1[1]) * segmentPosition),
-        Math.round(color1[2] + (color2[2] - color1[2]) * segmentPosition)
-      ];
-      
-      const hexColor = rgbToHex(color);
-      // Use inline styles for each character
-      html += `<span style="color: ${hexColor};">${char}</span>`;
-    });
-    
-    // Insert with special parsing options to preserve our styles
-    editor.chain().focus().insertContent(html, {
-      parseOptions: {
-        preserveWhitespace: 'full',
-      },
-    }).run();
-  }, [editor]);
-  
-  /**
-   * Apply rainbow effect to selected text word by word
-   * Each word gets a different color from the rainbow
-   */
-  const applyRainbowWords = useCallback(() => {
-    if (!editor) return;
-    
-    const { from, to } = editor.state.selection;
-    if (from === to) {
-      alert('Please select some text first');
-      return;
+      if (isNewGroup) {
+        currentGroup = {
+          chars: [char],
+          formatting: segment?.formatting || null,
+          startColor: i
+        };
+        charGroups.push(currentGroup);
+      } else if (currentGroup) {
+        currentGroup.chars.push(char);
+      }
     }
     
-    const selectedText = editor.state.doc.textBetween(from, to);
-    const words = selectedText.split(/(\s+)/);
-    const rainbowColors = [
-      [255, 0, 0],    // Red
-      [255, 165, 0],  // Orange
-      [255, 255, 0],  // Yellow
-      [0, 255, 0],    // Green
-      [0, 0, 255],    // Blue
-      [75, 0, 130],   // Indigo
-      [238, 130, 238] // Violet
-    ];
-    
-    editor.chain().focus().deleteSelection().run();
-    
+    // Generate HTML from groups
     let html = '';
-    words.forEach((word, index) => {
-      if (word.trim().length === 0) {
-        html += word; // Keep whitespace as is
+    
+    charGroups.forEach(group => {
+      if (group.chars.length === 0) return;
+      
+      const formattedText = group.chars.join('');
+      
+      // Handle whitespace differently
+      if (/^\s+$/.test(formattedText)) {
+        // Use single color for whitespace
+        const colorIndex = Math.max(0, group.startColor - 1) % rainbowColors.length;
+        const color = rainbowColors[colorIndex] as [number, number, number];
+        html += `<span style="color: ${rgbToHex(color)}">${formattedText}</span>`;
       } else {
-        const colorIndex = index % rainbowColors.length;
-        const color = rainbowColors[colorIndex];
-        const hexColor = rgbToHex(color as [number, number, number]);
-        html += `<span style="color: ${hexColor};">${word}</span>`;
+        // Apply rainbow colors to each character
+        let coloredHtml = '';
+        
+        group.chars.forEach((char, idx) => {
+          const i = group.startColor + idx;
+          // Calculate rainbow color
+          const normalizedPos = characters.length > 1 ? i / (characters.length - 1) : 0;
+          const colorSegment = normalizedPos * (rainbowColors.length - 1);
+          const segmentIndex = Math.floor(colorSegment);
+          const segmentPosition = colorSegment - segmentIndex;
+          
+          // Interpolate colors
+          const color1 = rainbowColors[segmentIndex];
+          const color2 = rainbowColors[Math.min(segmentIndex + 1, rainbowColors.length - 1)];
+          
+          const color: [number, number, number] = [
+            Math.round(color1[0] + (color2[0] - color1[0]) * segmentPosition),
+            Math.round(color1[1] + (color2[1] - color1[1]) * segmentPosition),
+            Math.round(color1[2] + (color2[2] - color1[2]) * segmentPosition)
+          ];
+          
+          coloredHtml += `<span style="color: ${rgbToHex(color)}">${char}</span>`;
+        });
+        
+        // Apply formatting to the group
+        if (group.formatting) {
+          if (group.formatting.bold) coloredHtml = `<strong>${coloredHtml}</strong>`;
+          if (group.formatting.strikethrough) coloredHtml = `<s>${coloredHtml}</s>`;
+          if (group.formatting.underline) coloredHtml = `<u>${coloredHtml}</u>`;
+        }
+        
+        html += coloredHtml;
       }
     });
     
-    editor.chain().focus().insertContent(html).run();
-  }, [editor]);
-  
+    return html;
+  }, []);
+
+  const generateWordRainbowHtml = useCallback((
+    text: string,
+    rainbowColors: Array<[number, number, number]>,
+    relevantSegments: typeof textSegments,
+    startPosition: number
+  ) => {
+    // Split into words
+    const words = text.split(/(\s+)/);
+    
+    // Calculate word positions
+    const wordPositions = [];
+    let currentPos = startPosition;
+    
+    for (const word of words) {
+      wordPositions.push({
+        start: currentPos,
+        end: currentPos + word.length,
+        text: word
+      });
+      currentPos += word.length;
+    }
+    
+    // Generate HTML for each word
+    let html = '';
+    
+    wordPositions.forEach((word, index) => {
+      if (word.text.trim().length === 0) {
+        // Keep whitespace as is
+        html += word.text;
+      } else {
+        // Calculate color for this word
+        const colorIndex = index % rainbowColors.length;
+        const color = rainbowColors[colorIndex] as [number, number, number];
+        const spanStart = `<span style="color: ${rgbToHex(color)}">`;
+        
+        // Find segments for this word
+        const wordSegments = relevantSegments.filter(seg => 
+          seg.start < word.end && seg.end > word.start
+        );
+        
+        // Apply formatting if present
+        if (wordSegments.length > 0) {
+          const segment = wordSegments[0];
+          let formattedWord = word.text;
+          
+          if (segment.formatting) {
+            if (segment.formatting.bold) formattedWord = `<strong>${formattedWord}</strong>`;
+            if (segment.formatting.strikethrough) formattedWord = `<s>${formattedWord}</s>`;
+            if (segment.formatting.underline) formattedWord = `<u>${formattedWord}</u>`;
+          }
+          
+          html += `${spanStart}${formattedWord}</span>`;
+        } else {
+          html += `${spanStart}${word.text}</span>`;
+        }
+      }
+    });
+    
+    return html;
+  }, []);
+
   /**
-   * Sync editor content with external coloredSegments prop changes
+   * Apply rainbow effect to selected text while preserving selection
+   */
+  const applyRainbowEffect = useCallback((mode: 'character' | 'word') => {
+    if (!editor) return;
+    
+    const { from, to } = editor.state.selection;
+    if (from === to) {
+      alert('Please select some text first');
+      return;
+    }
+    
+    // Get the selected text
+    const selectedText = editor.state.doc.textBetween(from, to);
+    
+    // Analyze text formatting
+    processColorSegmentsWithSpaces(editor.getHTML());
+    
+    // Define rainbow colors with proper typing
+    const rainbowColors: Array<[number, number, number]> = [
+      [255, 0, 0],    // Red
+      [255, 165, 0],  // Orange
+      [255, 255, 0],  // Yellow
+      [0, 255, 0],    // Green
+      [0, 0, 255],    // Blue
+      [75, 0, 130],   // Indigo
+      [238, 130, 238] // Violet
+    ];
+    
+    let html = '';
+    
+    if (mode === 'character') {
+      // Character-by-character rainbow effect
+      html = generateCharacterRainbowHtml(
+        selectedText, 
+        rainbowColors, 
+        textSegments, 
+        from
+      );
+    } else {
+      // Word-by-word rainbow effect
+      html = generateWordRainbowHtml(
+        selectedText, 
+        rainbowColors, 
+        textSegments, 
+        from
+      );
+    }
+    
+    // Apply the rainbow content with preserved selection
+    withPreservedSelection(() => {
+      editor.chain().focus().deleteSelection().run();
+      editor.chain().focus().insertContent(html, {
+        parseOptions: {
+          preserveWhitespace: 'full',
+        },
+      }).run();
+    });
+  }, [editor, textSegments, processColorSegmentsWithSpaces, withPreservedSelection, generateCharacterRainbowHtml, generateWordRainbowHtml]);
+
+  /**
+   * Sync editor content with external textSegments prop changes
    * Rebuilds editor HTML when segments are updated from outside
    */
   useEffect(() => {
-    if (!editor || !coloredSegments || coloredSegments.length === 0) return;
+    if (!editor || !textSegments || textSegments.length === 0) return;
     
     // Don't update the editor while it has focus to prevent disrupting user input
     if (isEditorFocused.current) return;
     
-    // Convert segments to HTML
-    const sortedSegments = [...coloredSegments].sort((a, b) => a.start - b.start);
-    let html = '';
-    
-    // Get the full text from the editor to use for extracting spaces
+    // Get the full text from the editor
     const fullText = editor.getText();
+    
+    // Convert segments to HTML
+    const sortedSegments = [...textSegments].sort((a, b) => a.start - b.start);
+    let html = '';
     let lastEnd = 0;
     
     sortedSegments.forEach(segment => {
-      // Add any spaces or characters between the last segment and this one
+      // Add any text between the last segment and this one
       if (segment.start > lastEnd && lastEnd < fullText.length) {
         const inBetweenText = fullText.substring(lastEnd, segment.start);
         html += inBetweenText;
       }
       
-      const hexColor = rgbToHex(segment.color);
-      html += `<span style="color: ${hexColor};">${segment.text}</span>`;
+      // Extract text for this segment from the main text
+      const segmentText = fullText.substring(segment.start, segment.end);
+      
+      // Start with basic span
+      let spanStart = '<span';
+      
+      // Add color if specified
+      if (segment.color) {
+        const hexColor = rgbToHex(segment.color);
+        spanStart += ` style="color: ${hexColor};"`;
+      }
+      
+      // Close the opening tag
+      spanStart += '>';
+      
+      // Add formatting if specified
+      let formattedText = segmentText;
+      if (segment.formatting) {
+        if (segment.formatting.bold) {
+          formattedText = `<strong>${formattedText}</strong>`;
+        }
+        if (segment.formatting.strikethrough) {
+          formattedText = `<s>${formattedText}</s>`;
+        }
+        if (segment.formatting.underline) {
+          formattedText = `<u>${formattedText}</u>`;
+        }
+      }
+      
+      html += `${spanStart}${formattedText}</span>`;
       lastEnd = segment.end;
     });
     
@@ -374,7 +690,7 @@ export default function TextEditor({
     if (currentHTML.replace(/\s+/g, '') !== html.replace(/\s+/g, '')) {
       editor.commands.setContent(html);
     }
-  }, [editor, coloredSegments]);
+  }, [editor, textSegments]);
   
   return (
     <div className={ledDisplayStyles.editorWrapper}>
@@ -436,7 +752,40 @@ export default function TextEditor({
         )}
         
         <button
-          onClick={applyRainbowText}
+          onClick={() => toggleFormat('bold')}
+          className={`${ledDisplayStyles.button} ${isBold ? ledDisplayStyles.activeButton : ''}`}
+          title="Bold"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M6 5h3.25c1.73 0 2.75 1 2.75 2.15 0 .94-.54 1.68-1.16 2.02.04.07.08.14.12.21.75.52 1.29 1.43 1.29 2.38C12.25 13.74 10.82 15 8.75 15H6V5zm1.5 1.5v2.5h1.75c.83 0 1.25-.67 1.25-1.25s-.42-1.25-1.25-1.25H7.5zm0 4v3h1.25c1.08 0 1.75-.65 1.75-1.5s-.67-1.5-1.75-1.5H7.5z" clipRule="evenodd" />
+          </svg>
+          <span>Bold</span>
+        </button>
+        
+        <button
+          onClick={() => toggleFormat('strike')}
+          className={`${ledDisplayStyles.button} ${isStrikethrough ? ledDisplayStyles.activeButton : ''}`}
+          title="Strikethrough"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 4.5c2.69 0 4.88 1.47 4.88 3.5 0 1.38-1.52 2.26-2.22 2.63-.46.24-.99.36-1.55.45-.31.05-.62.1-.91.14H6v1.56h5.41c-.11.07-.24.14-.34.2-1.01.63-1.57 1.39-1.57 2.43 0 1.77 1.76 3.2 3.92 3.2 1.4 0 2.63-.5 3.41-1.35l-1.1-1.55c-.38.43-1.32.91-2.31.91-1.39 0-2.44-.8-2.44-1.71 0-.57.4-.93.95-1.21.17-.09.34-.16.52-.22h3.05l.34-2h-3.96c.39-.1.77-.24 1.13-.43.57-.29 1-.73 1-1.31 0-.87-1.05-1.61-2.33-1.61-1.56 0-2.53.95-2.95 1.45l1.24 1.22c.25-.35.77-.92 1.71-.92zm0-3c-4.42 0-8 2.24-8 5 0 1.3.58 2.42 1.7 3.28.18.14.37.27.56.39H3V17h5v-1l.5-.12c1.5-.36 2.43-.93 3.12-1.66.28-.3.51-.64.7-1.01h3.18l-1-7c-.19-1.33-2.25-3.71-5.5-3.71z" />
+          </svg>
+          <span>Strikethrough</span>
+        </button>
+        
+        <button
+          onClick={() => toggleFormat('underline')}
+          className={`${ledDisplayStyles.button} ${isUnderline ? ledDisplayStyles.activeButton : ''}`}
+          title="Underline"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M5 16v1h10v-1H5zm1.5-11.5v6.75c0 1.93 1.57 3.5 3.5 3.5s3.5-1.57 3.5-3.5V4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v6.75c0 .28-.22.5-.5.5s-.5-.22-.5-.5V4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5z" />
+          </svg>
+          <span>Underline</span>
+        </button>
+        
+        <button
+          onClick={() => applyRainbowEffect('character')}
           className={ledDisplayStyles.button}
           title="Apply rainbow effect to selected text"
         >
@@ -445,7 +794,7 @@ export default function TextEditor({
         </button>
         
         <button
-          onClick={applyRainbowWords}
+          onClick={() => applyRainbowEffect('word')}
           className={ledDisplayStyles.button}
           title="Apply rainbow effect per word"
         >

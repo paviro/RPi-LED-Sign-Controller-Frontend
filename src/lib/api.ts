@@ -296,18 +296,16 @@ export async function testUpdateItem(id: string): Promise<void> {
     item.color = [0, 0, 255];
     item.speed = 40.0;
     
-    // Add colored segments
-    item.colored_segments = [
+    // Use text_segments instead of colored_segments
+    item.text_segments = [
       {
         start: 0,
         end: 7,
-        text: "Updated",
         color: [255, 0, 0]
       },
       {
         start: 8,
         end: 15,
-        text: "message",
         color: [0, 255, 0]
       }
     ];
@@ -318,22 +316,9 @@ export async function testUpdateItem(id: string): Promise<void> {
     console.log('Modified item:', item);
     
     // Send the update to the server
-    const updateResponse = await fetch(`${API_BASE_URL}/playlist/items/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(item)
-    });
+    await updatePlaylistItem(id, item);
     
-    const responseText = await updateResponse.text();
-    console.log('Direct update response:', responseText);
-    
-    if (!updateResponse.ok) {
-      throw new Error(`Failed to update item: ${updateResponse.status} ${updateResponse.statusText}`);
-    }
-    
-    console.log('Item updated successfully using direct approach!');
+    console.log('Item updated successfully!');
     
   } catch (error) {
     console.error('Test update error:', error);
@@ -345,7 +330,6 @@ export async function testUpdateItem(id: string): Promise<void> {
  * @param item - The playlist item data to preview
  */
 export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<void> {
-  console.log(`${API_BASE_URL}/preview`, 'POST', item as unknown as Record<string, unknown>);
   
   try {
     const response = await fetch(`${API_BASE_URL}/preview`, {

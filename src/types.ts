@@ -1,41 +1,50 @@
 /**
  * Represents an item in a playlist that can be displayed as text with various visual effects.
  */
+export interface TextSegment {
+  start: number;
+  end: number;
+  color?: [number, number, number];
+  formatting?: {
+    bold?: boolean;
+    strikethrough?: boolean;
+    underline?: boolean;
+  };
+}
+
+export type ColorArray = Array<[number, number, number]>;
+
+export type BorderEffect = 
+  | { None: null }
+  | { Rainbow: null }
+  | { Pulse: { colors: ColorArray } }
+  | { Sparkle: { colors: ColorArray } }
+  | { Gradient: { colors: ColorArray } };
+
 export interface PlaylistItem {
   /** Unique identifier for the playlist item */
   id: string;
   /** The type of content - currently only supports 'Text' */
-  content_type: 'Text';
+  content_type: string;
   /** The text content to be displayed */
   text: string;
-  /** Whether the text should scroll across the display */
-  scroll: boolean;
   /** RGB color for the text as [r, g, b] values (0-255) */
-  color: [number, number, number];
+  color?: [number, number, number];
+  /** Whether the text should scroll across the display */
+  scroll?: boolean;
   /** The scrolling speed (higher = faster) */
-  speed: number;
+  speed?: number;
   /** How long the item should be displayed in seconds */
-  duration: number;
+  duration?: number;
   /** Number of times to repeat the item (0 = infinite) */
-  repeat_count: number;
+  repeat_count?: number;
   /** Visual border effect to apply to the text */
-  border_effect: 
-    | { None: null }
-    | { Rainbow: null }
-    | { Pulse: { colors: Array<[number, number, number]> } }
-    | { Sparkle: { colors: Array<[number, number, number]> } }
-    | { Gradient: { colors: Array<[number, number, number]> } };
+  border_effect?: BorderEffect;
   /** Optional colored text segments (null if not using colored segments) */
-  colored_segments?: Array<{
-    /** Starting character index */
-    start: number;
-    /** Ending character index (exclusive) */
-    end: number;
-    /** The text segment content */
-    text: string;
-    /** RGB color for this segment as [r, g, b] values (0-255) */
-    color: [number, number, number];
-  }> | null;
+  text_segments?: TextSegment[];
+  
+  // @deprecated - For backward compatibility only
+  colored_segments?: Array<{ text: string; color: [number, number, number] }>;
 }
 
 /**

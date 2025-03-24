@@ -32,7 +32,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     duration: 10,
     repeat_count: 1,
     border_effect: { None: null },
-    colored_segments: []
+    text_segments: []
   });
   
   // Color management for text styling
@@ -43,8 +43,12 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   const [textSegments, setTextSegments] = useState<Array<{
     start: number;
     end: number;
-    text: string;
-    color: [number, number, number];
+    color?: [number, number, number];
+    formatting?: {
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+    };
   }>>([]);
   
   // Speed preset management
@@ -114,7 +118,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
       duration: formData.duration || 10,
       repeat_count: formData.repeat_count || 1,
       border_effect: getBorderEffectObject(),
-      colored_segments: textSegments.length > 0 ? textSegments : null
+      text_segments: textSegments.length > 0 ? textSegments : undefined
     };
   }, [
     formData.text,
@@ -293,8 +297,11 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             setSelectedBorderEffect('none');
           }
           
-          // Convert API colored segments to editor format
-          if (item.colored_segments && item.colored_segments.length > 0) {
+          // Convert API text segments to editor format
+          if (item.text_segments && item.text_segments.length > 0) {
+            setTextSegments(item.text_segments);
+          } else if (item.colored_segments && item.colored_segments.length > 0) {
+            // For backward compatibility, convert old colored_segments to new format
             const segments = item.colored_segments.map((seg, index) => {
               // Calculate positions based on previous segments
               const previousSegmentsLength = item.colored_segments
@@ -304,7 +311,6 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
               return {
                 start: previousSegmentsLength,
                 end: previousSegmentsLength + seg.text.length,
-                text: seg.text,
                 color: seg.color
               };
             });
@@ -354,8 +360,17 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     }
   };
   
-  // Handle updates to colored text segments
-  const handleTextSegmentsChange = (segments: Array<{start: number; end: number; text: string; color: [number, number, number]}>) => {
+  // Handle updates to text segments
+  const handleTextSegmentsChange = (segments: Array<{
+    start: number; 
+    end: number; 
+    color?: [number, number, number];
+    formatting?: {
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+    };
+  }>) => {
     setTextSegments(segments);
   };
   
@@ -410,17 +425,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     try {
       const borderEffect = getBorderEffectObject();
       
-      // Prepare colored segments
-      const apiColoredSegments = textSegments.length > 0
-        ? textSegments.map(seg => ({
-            start: seg.start,
-            end: seg.end,
-            text: seg.text,
-            color: seg.color
-          }))
-        : null;
-      
-      // Create item data
+      // Create item data using text_segments instead of colored_segments
       const baseItem: Partial<PlaylistItem> = {
         content_type: 'Text',
         text: formData.text || '',
@@ -430,7 +435,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
         duration: formData.duration || 10,
         repeat_count: formData.repeat_count || 1,
         border_effect: borderEffect,
-        colored_segments: apiColoredSegments
+        text_segments: textSegments.length > 0 ? textSegments : undefined
       };
       
       if (isNewItem) {
@@ -555,7 +560,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             onSegmentsChange={handleTextSegmentsChange}
             selectedColor={selectedColor}
             onColorChange={handleColorChange}
-            coloredSegments={textSegments}
+            textSegments={textSegments}
           />
         </div>
         
