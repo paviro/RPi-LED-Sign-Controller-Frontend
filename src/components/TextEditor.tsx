@@ -5,7 +5,6 @@ import StarterKit from '@tiptap/starter-kit';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
-import Strike from '@tiptap/extension-strike';
 import { useEffect, useCallback, useState, useRef } from 'react';
 import ColorPicker from './ColorPicker';
 
@@ -109,7 +108,6 @@ export default function TextEditor({
           class: 'editor-underline',
         },
       }),
-      Strike
     ],
     content: initialValue,
     parseOptions: {

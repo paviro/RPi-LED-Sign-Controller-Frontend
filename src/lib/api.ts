@@ -109,7 +109,7 @@ export async function fetchPlaylistItem(id: string): Promise<PlaylistItem> {
  * @param item - The partial playlist item data to update
  * @returns Promise containing the updated playlist item
  */
-export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>): Promise<void> {
   console.log(`${API_BASE_URL}/playlist/items/${id}`, 'PUT', item as unknown as Record<string, unknown>);
   
   try {
@@ -127,11 +127,10 @@ export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>
       console.log(error);
       throw new Error(error);
     }
+
+    console.log(`${API_BASE_URL}/playlist/items/${id}`, response.status, 'Update successful');
     
-    const data = await response.json();
-    console.log(`${API_BASE_URL}/playlist/items/${id}`, response.status, data);
-    
-    return data;
+    return;
   } catch (error) {
     console.log(`Error in updatePlaylistItem: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
@@ -330,6 +329,7 @@ export async function testUpdateItem(id: string): Promise<void> {
  * @param item - The playlist item data to preview
  */
 export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<void> {
+  console.log(`${API_BASE_URL}/preview`, 'POST', item as unknown as Record<string, unknown>);
   
   try {
     const response = await fetch(`${API_BASE_URL}/preview`, {

@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { fetchPlaylistItem, createPlaylistItem, startPreviewMode, exitPreviewMode, pingPreviewMode } from '../lib/api';
+import { 
+  fetchPlaylistItem, 
+  createPlaylistItem, 
+  updatePlaylistItem,
+  startPreviewMode, 
+  exitPreviewMode, 
+  pingPreviewMode 
+} from '../lib/api';
 import TextEditor from './TextEditor';
 import { PlaylistItem } from '../types';
 import StatusMessage from './StatusMessage';
@@ -12,9 +19,6 @@ interface EditorContentProps {
   itemId: string | null;
   onBack: () => void;
 }
-
-// API base URL for all requests
-const API_BASE_URL = '/api';
 
 export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   const [loading, setLoading] = useState(true);
@@ -431,7 +435,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
         text: formData.text || '',
         scroll: formData.scroll || false,
         color: formData.color || [255, 255, 255],
-        speed: formData.speed || 5,
+        speed: formData.speed || 50,
         duration: formData.duration || 10,
         repeat_count: formData.repeat_count || 1,
         border_effect: borderEffect,
@@ -441,20 +445,11 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
       if (isNewItem) {
         await createPlaylistItem(baseItem);
       } else if (itemId) {
-        const completeItem = {
+        const itemToUpdate: Partial<PlaylistItem> = {
           ...baseItem,
-          id: itemId
+          id: itemId 
         };
-        
-        const response = await fetch(`${API_BASE_URL}/playlist/items/${itemId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(completeItem)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error ${response.status}`);
-        }
+        await updatePlaylistItem(itemId, itemToUpdate);
       }
       
       // Stop ping interval
