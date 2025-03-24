@@ -1,75 +1,114 @@
 /**
- * Represents an item in a playlist that can be displayed as text with various visual effects.
+ * Enum representing content types supported by the system
  */
-export interface TextSegment {
-  start: number;
-  end: number;
-  color?: [number, number, number];
-  formatting?: {
-    bold?: boolean;
-    strikethrough?: boolean;
-    underline?: boolean;
-  };
+export enum ContentType {
+  Text = 'Text',
+  // Future types will be added here: Image, Clock, Animation, etc.
 }
 
-export type ColorArray = Array<[number, number, number]>;
+/**
+ * Text formatting options for text segments
+ */
+export interface TextFormatting {
+  bold?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+}
 
+/**
+ * A segment of text with optional formatting and color
+ */
+export interface TextSegment {
+  start: number;       // Start index in the text (character position)
+  end: number;         // End index in the text (exclusive)
+  color?: [number, number, number]; // RGB color values as array
+  formatting?: TextFormatting;      // Optional formatting properties
+}
+
+/**
+ * Text-specific content properties
+ */
+export interface TextContent {
+  text: string;
+  scroll: boolean;
+  color: [number, number, number];
+  speed: number;
+  text_segments?: TextSegment[];
+}
+
+/**
+ * Union type for different content details based on content type
+ */
+export type ContentDetails = 
+  | { type: 'Text'; } & TextContent
+  // Future types will be added here: Image, Clock, etc.
+
+/**
+ * Content data structure that includes the type and specific details
+ */
+export interface ContentData {
+  type: ContentType;
+  data: ContentDetails;
+}
+
+/**
+ * Border effect types matching the Rust implementation
+ */
 export type BorderEffect = 
   | { None: null }
   | { Rainbow: null }
-  | { Pulse: { colors: ColorArray } }
-  | { Sparkle: { colors: ColorArray } }
-  | { Gradient: { colors: ColorArray } };
+  | { Pulse: { colors: Array<[number, number, number]> } }
+  | { Sparkle: { colors: Array<[number, number, number]> } }
+  | { Gradient: { colors: Array<[number, number, number]> } };
 
+/**
+ * Main playlist item structure matching DisplayContent in the backend
+ */
 export interface PlaylistItem {
-  /** Unique identifier for the playlist item */
   id: string;
-  /** The type of content - currently only supports 'Text' */
-  content_type: string;
-  /** The text content to be displayed */
-  text: string;
-  /** RGB color for the text as [r, g, b] values (0-255) */
-  color?: [number, number, number];
-  /** Whether the text should scroll across the display */
-  scroll?: boolean;
-  /** The scrolling speed (higher = faster) */
-  speed?: number;
-  /** How long the item should be displayed in seconds */
-  duration?: number;
-  /** Number of times to repeat the item (0 = infinite) */
-  repeat_count?: number;
-  /** Visual border effect to apply to the text */
-  border_effect?: BorderEffect;
-  /** Optional colored text segments (null if not using colored segments) */
-  text_segments?: TextSegment[];
-  
-  // @deprecated - For backward compatibility only
-  colored_segments?: Array<{ text: string; color: [number, number, number] }>;
+  duration: number;        // Display duration in seconds
+  repeat_count: number;    // Number of times to repeat
+  border_effect: BorderEffect | null; // Optional border effect
+  content: ContentData;
 }
 
 /**
- * Represents a collection of playlist items with playback configuration.
+ * Playlist collection structure
  */
 export interface Playlist {
-  /** Array of items in the playlist */
   items: PlaylistItem[];
-  /** Index of the currently active item (undefined if no item is active) */
-  active_index?: number;
-  /** Whether the playlist should repeat after finishing */
-  repeat?: boolean;
+  active_index: number;
+  repeat: boolean;
 }
 
 /**
- * Props for the StatusMessage component used to display notifications.
+ * Request structure for reordering playlist items
+ */
+export interface ReorderRequest {
+  item_ids: string[];
+}
+
+/**
+ * Settings for display brightness
+ */
+export interface BrightnessSettings {
+  brightness: number;
+}
+
+/**
+ * Preview mode state
+ */
+export interface PreviewModeState {
+  active: boolean;
+}
+
+/**
+ * Props for the StatusMessage component
  */
 export interface StatusMessageProps {
-  /** Status information to display */
   status: {
-    /** The message text */
     message: string;
-    /** The type of status message which determines styling */
     type: 'error' | 'success' | 'info';
   };
-  /** Function to call when closing the status message */
   onClose: () => void;
 } 

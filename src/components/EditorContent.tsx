@@ -10,7 +10,7 @@ import {
   pingPreviewMode 
 } from '../lib/api';
 import TextEditor from './TextEditor';
-import { PlaylistItem } from '../types';
+import { PlaylistItem, ContentType } from '../types';
 import StatusMessage from './StatusMessage';
 import BorderEffectSelector from './BorderEffectSelector';
 import { debounce } from 'lodash';
@@ -28,15 +28,20 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   // State for tracking whether we're editing an existing item or creating a new one
   const [isNewItem, setIsNewItem] = useState(true);
   const [formData, setFormData] = useState<Partial<PlaylistItem>>({
-    content_type: 'Text',
-    text: '',
-    scroll: false,
-    color: [255, 255, 255],
-    speed: 50,
     duration: 10,
     repeat_count: 1,
     border_effect: { None: null },
-    text_segments: []
+    content: {
+      type: ContentType.Text,
+      data: {
+        type: 'Text',
+        text: '',
+        scroll: false,
+        color: [255, 255, 255],
+        speed: 50,
+        text_segments: []
+      }
+    }
   });
   
   // Color management for text styling
@@ -114,22 +119,27 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   // Memoize the getPreviewItem function with useCallback
   const getPreviewItem = useCallback((): Partial<PlaylistItem> => {
     return {
-      content_type: 'Text',
-      text: formData.text || 'Edit Mode',
-      color: selectedColor,
-      scroll: formData.scroll || false,
-      speed: formData.speed || 50,
       duration: formData.duration || 10,
       repeat_count: formData.repeat_count || 1,
       border_effect: getBorderEffectObject(),
-      text_segments: textSegments.length > 0 ? textSegments : undefined
+      content: {
+        type: ContentType.Text,
+        data: {
+          type: 'Text',
+          text: formData.content?.data?.text || 'Edit Mode',
+          scroll: formData.content?.data?.scroll || false,
+          color: selectedColor,
+          speed: formData.content?.data?.speed || 50,
+          text_segments: textSegments.length > 0 ? textSegments : undefined
+        }
+      }
     };
   }, [
-    formData.text,
-    formData.scroll,
-    formData.speed,
     formData.duration,
     formData.repeat_count,
+    formData.content?.data?.text,
+    formData.content?.data?.scroll,
+    formData.content?.data?.speed,
     selectedColor,
     getBorderEffectObject,
     textSegments
@@ -204,7 +214,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     const previewItem = getPreviewItem();
     debouncedUpdatePreview(previewItem);
     
-  }, [formData.text, loading, debouncedUpdatePreview, getPreviewItem]);
+  }, [formData.content?.data?.text, loading, debouncedUpdatePreview, getPreviewItem]);
 
   // This effect handles immediate updates for UI controls and styles
   useEffect(() => {
@@ -222,8 +232,8 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     selectedColor,
     selectedBorderEffect,
     gradientColors,
-    formData.scroll,
-    formData.speed,
+    formData.content?.data?.scroll,
+    formData.content?.data?.speed,
     formData.duration,
     formData.repeat_count,
     loading,
@@ -250,7 +260,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     setGradientColors(prev => [...prev, newColor]);
   };
 
-  // Load item data when itemId changes
+  // Load item data when itemId changes - update to remove old schema references
   useEffect(() => {
     const loadItem = async () => {
       setLoading(true);
@@ -260,17 +270,18 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
           const item = await fetchPlaylistItem(itemId);
           setFormData(item);
           
-          // Set the selected color from the item's color
-          if (item.color) {
-            setSelectedColor(item.color);
+          // Set the selected color from the item's content
+          if (item.content?.data?.color) {
+            setSelectedColor(item.content.data.color);
           }
           
           // Determine speed preset based on the loaded speed value
-          if (item.speed === 35) {
+          const speed = item.content?.data?.speed;
+          if (speed === 35) {
             setSpeedPresetState('slow');
-          } else if (item.speed === 50) {
+          } else if (speed === 50) {
             setSpeedPresetState('normal');
-          } else if (item.speed === 150) {
+          } else if (speed === 150) {
             setSpeedPresetState('fast');
           } else {
             setSpeedPresetState('custom');
@@ -290,36 +301,20 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             const effectValue = Object.values(item.border_effect)[0];
             if (effectValue && typeof effectValue === 'object' && effectValue !== null && 'colors' in effectValue) {
               if (!effectValue.colors || effectValue.colors.length === 0) {
-                setGradientColors([item.color || [255, 0, 0]]);
+                setGradientColors([item.content?.data?.color || [255, 0, 0]]);
               } else {
                 setGradientColors(effectValue.colors as Array<[number, number, number]>);
               }
             } else {
-              setGradientColors([item.color || [255, 0, 0]]);
+              setGradientColors([item.content?.data?.color || [255, 0, 0]]);
             }
           } else {
             setSelectedBorderEffect('none');
           }
           
-          // Convert API text segments to editor format
-          if (item.text_segments && item.text_segments.length > 0) {
-            setTextSegments(item.text_segments);
-          } else if (item.colored_segments && item.colored_segments.length > 0) {
-            // For backward compatibility, convert old colored_segments to new format
-            const segments = item.colored_segments.map((seg, index) => {
-              // Calculate positions based on previous segments
-              const previousSegmentsLength = item.colored_segments
-                ? item.colored_segments.slice(0, index).reduce((sum, s) => sum + s.text.length, 0)
-                : 0;
-              
-              return {
-                start: previousSegmentsLength,
-                end: previousSegmentsLength + seg.text.length,
-                color: seg.color
-              };
-            });
-            
-            setTextSegments(segments);
+          // Load text segments if they exist
+          if (item.content?.data?.text_segments && item.content.data.text_segments.length > 0) {
+            setTextSegments(item.content.data.text_segments);
           }
           
           setIsNewItem(false);
@@ -337,20 +332,6 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     loadItem();
   }, [itemId]);
   
-  // Handle form input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else if (name === 'speed' || name === 'duration' || name === 'repeat_count') {
-      setFormData(prev => ({ ...prev, [name]: parseFloat(value) }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-  
   // Update the global text color
   const handleColorChange = (color: [number, number, number]) => {
     // Only update if the color actually changed
@@ -360,7 +341,16 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
       selectedColor[2] !== color[2]
     ) {
       setSelectedColor(color);
-      setFormData(prev => ({ ...prev, color }));
+      setFormData(prev => ({
+        ...prev,
+        content: {
+          ...prev.content!,
+          data: {
+            ...prev.content!.data,
+            color: color
+          }
+        }
+      }));
     }
   };
   
@@ -419,7 +409,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   
   // Save the current playlist item
   const handleSave = async () => {
-    if (!formData.text || formData.text.trim() === '') {
+    if (!formData.content?.data?.text || formData.content.data.text.trim() === '') {
       setStatus({ message: 'Please enter message text', type: 'error' });
       return;
     }
@@ -429,27 +419,32 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     try {
       const borderEffect = getBorderEffectObject();
       
-      // Create item data using text_segments instead of colored_segments
-      const baseItem: Partial<PlaylistItem> = {
-        content_type: 'Text',
-        text: formData.text || '',
-        scroll: formData.scroll || false,
-        color: formData.color || [255, 255, 255],
-        speed: formData.speed || 50,
+      // Create item data using the correct structure
+      const itemToSave: Partial<PlaylistItem> = {
         duration: formData.duration || 10,
         repeat_count: formData.repeat_count || 1,
         border_effect: borderEffect,
-        text_segments: textSegments.length > 0 ? textSegments : undefined
+        content: {
+          type: ContentType.Text,
+          data: {
+            type: 'Text',
+            text: formData.content?.data?.text || '',
+            scroll: formData.content?.data?.scroll || false,
+            color: selectedColor,
+            speed: formData.content?.data?.speed || 50,
+            text_segments: textSegments.length > 0 ? textSegments : undefined
+          }
+        }
       };
       
       if (isNewItem) {
-        await createPlaylistItem(baseItem);
+        await createPlaylistItem(itemToSave);
       } else if (itemId) {
-        const itemToUpdate: Partial<PlaylistItem> = {
-          ...baseItem,
-          id: itemId 
-        };
-        await updatePlaylistItem(itemId, itemToUpdate);
+        // Make sure to include the ID in the data being sent
+        await updatePlaylistItem(itemId, {
+          ...itemToSave,
+          id: itemId // Explicitly include the ID here
+        });
       }
       
       // Stop ping interval
@@ -475,13 +470,40 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   const setSpeedPreset = (preset: 'slow' | 'normal' | 'fast' | 'custom') => {
     switch (preset) {
       case 'slow':
-        setFormData(prev => ({ ...prev, speed: 35 }));
+        setFormData(prev => ({
+          ...prev,
+          content: {
+            ...prev.content!,
+            data: {
+              ...prev.content!.data,
+              speed: 35
+            }
+          }
+        }));
         break;
       case 'normal':
-        setFormData(prev => ({ ...prev, speed: 50 }));
+        setFormData(prev => ({
+          ...prev,
+          content: {
+            ...prev.content!,
+            data: {
+              ...prev.content!.data,
+              speed: 50
+            }
+          }
+        }));
         break;
       case 'fast':
-        setFormData(prev => ({ ...prev, speed: 150 }));
+        setFormData(prev => ({
+          ...prev,
+          content: {
+            ...prev.content!,
+            data: {
+              ...prev.content!.data,
+              speed: 150
+            }
+          }
+        }));
         break;
       // Custom keeps the current value
     }
@@ -504,11 +526,11 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   useEffect(() => {
     const slider = document.querySelector('input[name="speed"]') as HTMLInputElement;
     if (slider) {
-      const value = formData.speed || 50;
+      const value = formData.content?.data?.speed || 50;
       const percentage = ((value - 10) / (250 - 10)) * 100;
       slider.style.setProperty('--slider-value', `${percentage}%`);
     }
-  }, [formData.speed]);
+  }, [formData.content?.data?.speed]);
 
   if (loading) {
     return (
@@ -550,8 +572,17 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             Message Text
           </h3>
           <TextEditor 
-            initialValue={formData.text || ''}
-            onChange={(text) => setFormData(prev => ({ ...prev, text }))}
+            initialValue={formData.content?.data?.text || ''}
+            onChange={(text) => setFormData(prev => ({
+              ...prev,
+              content: {
+                ...prev.content!,
+                data: {
+                  ...prev.content!.data,
+                  text: text
+                }
+              }
+            }))}
             onSegmentsChange={handleTextSegmentsChange}
             selectedColor={selectedColor}
             onColorChange={handleColorChange}
@@ -567,11 +598,20 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
                 type="checkbox"
                 id="scroll"
                 name="scroll"
-                checked={formData.scroll}
+                checked={formData.content?.data?.scroll || false}
                 onChange={(e) => {
                   // Explicitly handle the toggle to ensure state updates properly
                   const isChecked = e.target.checked;
-                  setFormData(prev => ({ ...prev, scroll: isChecked }));
+                  setFormData(prev => ({
+                    ...prev,
+                    content: {
+                      ...prev.content!,
+                      data: {
+                        ...prev.content!.data,
+                        scroll: isChecked
+                      }
+                    }
+                  }));
                 }}
                 className="sr-only peer"
               />
@@ -585,7 +625,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
 
           {/* Scroll controls with animation */}
           <div 
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${formData.content?.data?.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
           >
             {/* Scroll Speed */}
             <div className="mb-6">
@@ -626,7 +666,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
                       name="speed"
                       min="10"
                       max="250"
-                      value={formData.speed || 50}
+                      value={formData.content?.data?.speed || 50}
                       onChange={(e) => {
                         // Get the value
                         const value = parseInt(e.target.value);
@@ -636,15 +676,24 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
                         e.target.style.setProperty('--slider-value', `${percentage}%`);
                         
                         // Update the state
-                        handleInputChange(e);
+                        setFormData(prev => ({
+                          ...prev,
+                          content: {
+                            ...prev.content!,
+                            data: {
+                              ...prev.content!.data,
+                              speed: value
+                            }
+                          }
+                        }));
                         setSpeedPresetState('custom');
                       }}
-                      style={{ '--slider-value': `${((formData.speed || 50) - 10) / (250 - 10) * 100}%` } as React.CSSProperties}
+                      style={{ '--slider-value': `${((formData.content?.data?.speed || 50) - 10) / (250 - 10) * 100}%` } as React.CSSProperties}
                       className="enhanced-slider appearance-none cursor-pointer w-full"
                     />
                   </div>
                   <div className="brightness-value whitespace-nowrap">
-                    {formData.speed || 50} px/sec
+                    {formData.content?.data?.speed || 50} px/sec
                   </div>
                 </div>
               </div>
@@ -709,7 +758,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
 
           {/* Static duration control with direct input */}
           <div 
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${!formData.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${!formData.content?.data?.scroll ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 invisible'}`}
           >
             <div className="mb-6">
               <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">Duration (seconds):</label>

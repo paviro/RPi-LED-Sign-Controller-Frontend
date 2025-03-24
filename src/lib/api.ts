@@ -53,31 +53,19 @@ export async function fetchPlaylistItems(): Promise<PlaylistItem[]> {
  * @returns Promise containing the created playlist item with generated ID
  */
 export async function createPlaylistItem(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
-  // Don't set an ID for new items - let the server generate one
+  const response = await fetch('/api/playlist/items', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(item),
+  });
   
-  console.log(`${API_BASE_URL}/playlist/items`, 'POST', item as unknown as Record<string, unknown>);
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/playlist/items`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      const error = `HTTP error ${response.status}: ${errorData}`;
-      console.log(error);
-      throw new Error(error);
-    }
-    
-    const data = await response.json();
-    console.log(`${API_BASE_URL}/playlist/items`, response.status, data);
-    return data;
-  } catch (error) {
-    console.log(`Error in createPlaylistItem: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Failed to create item: ${response.statusText}`);
   }
+  
+  return response.json();
 }
 
 /**
@@ -109,32 +97,24 @@ export async function fetchPlaylistItem(id: string): Promise<PlaylistItem> {
  * @param item - The partial playlist item data to update
  * @returns Promise containing the updated playlist item
  */
-export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>): Promise<void> {
-  console.log(`${API_BASE_URL}/playlist/items/${id}`, 'PUT', item as unknown as Record<string, unknown>);
+export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+  const response = await fetch(`/api/playlist/items/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ...item,
+      id: id
+    }),
+  });
   
-  try {
-    const response = await fetch(`${API_BASE_URL}/playlist/items/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...item,
-        id // Include the ID in the request payload
-      })
-    });
-    
-    if (!response.ok) {
-      const error = `HTTP error ${response.status}`;
-      console.log(error);
-      throw new Error(error);
-    }
-
-    console.log(`${API_BASE_URL}/playlist/items/${id}`, response.status, 'Update successful');
-    
-    return;
-  } catch (error) {
-    console.log(`Error in updatePlaylistItem: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update item: ${response.statusText} - ${errorText}`);
   }
+  
+  return response.json();
 }
 
 /**
@@ -162,8 +142,9 @@ export async function removePlaylistItem(id: string): Promise<void> {
 /**
  * Updates the order of playlist items
  * @param itemIds - Array of item IDs in the desired order
+ * @returns Promise containing array of reordered playlist items
  */
-export async function updatePlaylistOrder(itemIds: string[]): Promise<void> {
+export async function updatePlaylistOrder(itemIds: string[]): Promise<PlaylistItem[]> {
   const payload = { item_ids: itemIds };
   
   console.log(`${API_BASE_URL}/playlist/reorder`, 'PUT', payload);
@@ -179,7 +160,9 @@ export async function updatePlaylistOrder(itemIds: string[]): Promise<void> {
       console.log(error);
       throw new Error(error);
     }
-    console.log(`${API_BASE_URL}/playlist/reorder`, response.status, {});
+    const data = await response.json();
+    console.log(`${API_BASE_URL}/playlist/reorder`, response.status, data);
+    return data;
   } catch (error) {
     console.log(`Error in updatePlaylistOrder: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
@@ -190,7 +173,7 @@ export async function updatePlaylistOrder(itemIds: string[]): Promise<void> {
  * Fetches the current brightness setting
  * @returns Promise containing the brightness value (0-100)
  */
-export async function fetchBrightness(): Promise<{ value: number }> {
+export async function fetchBrightness(): Promise<{ brightness: number }> {
   console.log(`${API_BASE_URL}/settings/brightness`, 'GET');
   try {
     const response = await fetch(`${API_BASE_URL}/settings/brightness`);
@@ -201,7 +184,7 @@ export async function fetchBrightness(): Promise<{ value: number }> {
     }
     const data = await response.json();
     console.log(`${API_BASE_URL}/settings/brightness`, response.status, data);
-    return { value: data.brightness };
+    return data;
   } catch (error) {
     console.log(`Error in fetchBrightness: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
@@ -211,8 +194,9 @@ export async function fetchBrightness(): Promise<{ value: number }> {
 /**
  * Updates the brightness setting
  * @param value - Brightness value (0-100)
+ * @returns Promise containing the updated brightness settings
  */
-export async function updateBrightness(value: number): Promise<void> {
+export async function updateBrightness(value: number): Promise<{ brightness: number }> {
   // Clamp brightness to integer between 0-100
   const brightnessValue = Math.max(0, Math.min(100, Math.round(Number(value))));
   
@@ -281,123 +265,49 @@ export async function updateBrightnessSimple(value: number): Promise<void> {
 }
 
 /**
- * Test function for playlist item updates
- * @param id - The ID of the playlist item to update
- */
-export async function testUpdateItem(id: string): Promise<void> {
-  try {
-    // Get the item by ID
-    const item = await fetchPlaylistItem(id);
-    console.log('Original item:', item);
-    
-    // Modify the item properties
-    item.text = "Updated text message!";
-    item.color = [0, 0, 255];
-    item.speed = 40.0;
-    
-    // Use text_segments instead of colored_segments
-    item.text_segments = [
-      {
-        start: 0,
-        end: 7,
-        color: [255, 0, 0]
-      },
-      {
-        start: 8,
-        end: 15,
-        color: [0, 255, 0]
-      }
-    ];
-    
-    // Set border effect
-    item.border_effect = { "Rainbow": null };
-    
-    console.log('Modified item:', item);
-    
-    // Send the update to the server
-    await updatePlaylistItem(id, item);
-    
-    console.log('Item updated successfully!');
-    
-  } catch (error) {
-    console.error('Test update error:', error);
-  }
-}
-
-/**
  * Starts preview mode by displaying the provided content item on the LED matrix
  * @param item - The playlist item data to preview
+ * @returns Promise containing the playlist item being previewed
  */
-export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<void> {
-  console.log(`${API_BASE_URL}/preview`, 'POST', item as unknown as Record<string, unknown>);
+export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+  const response = await fetch('/api/preview', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(item),
+  });
   
-  try {
-    const response = await fetch(`${API_BASE_URL}/preview`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    });
-    
-    if (!response.ok) {
-      const error = `HTTP error ${response.status}`;
-      console.log(error);
-      throw new Error(error);
-    }
-    
-    console.log(`${API_BASE_URL}/preview`, response.status, {});
-  } catch (error) {
-    console.log(`Error in startPreviewMode: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
+  if (!response.ok) {
+    throw new Error('Failed to start preview mode');
   }
+  
+  return response.json();
 }
 
 /**
  * Exits preview mode and returns to normal playlist playback
  */
 export async function exitPreviewMode(): Promise<void> {
-  console.log(`${API_BASE_URL}/preview`, 'DELETE');
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/preview`, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) {
-      const error = `HTTP error ${response.status}`;
-      console.log(error);
-      throw new Error(error);
-    }
-    
-    console.log(`${API_BASE_URL}/preview`, response.status, {});
-  } catch (error) {
-    console.log(`Error in exitPreviewMode: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
-  }
+  await fetch('/api/preview', {
+    method: 'DELETE',
+  });
 }
 
 /**
  * Checks if the display is currently in preview mode
  * @returns Promise containing the preview mode status
  */
-export async function checkPreviewModeStatus(): Promise<{ active: boolean }> {
-  console.log(`${API_BASE_URL}/preview/status`, 'GET');
+export async function getPreviewStatus(): Promise<{ active: boolean }> {
+  const response = await fetch('/api/preview/status', {
+    method: 'GET',
+  });
   
-  try {
-    const response = await fetch(`${API_BASE_URL}/preview/status`);
-    
-    if (!response.ok) {
-      const error = `HTTP error ${response.status}`;
-      console.log(error);
-      throw new Error(error);
-    }
-    
-    const data = await response.json();
-    console.log(`${API_BASE_URL}/preview/status`, response.status, data);
-    return data;
-  } catch (error) {
-    console.log(`Error in checkPreviewModeStatus: ${error instanceof Error ? error.message : String(error)}`);
-    throw error;
+  if (!response.ok) {
+    throw new Error('Failed to get preview status');
   }
+  
+  return response.json();
 }
 
 /**
@@ -411,16 +321,8 @@ declare global {
 }
 
 // Add this function to your existing API functions
-export const pingPreviewMode = async (): Promise<void> => {
-  try {
-    const response = await fetch('/api/preview/ping', {
-      method: 'POST',
-    });
-    
-    if (!response.ok) {
-      console.warn('Preview mode ping failed:', response.status);
-    }
-  } catch (error) {
-    console.error('Error pinging preview mode:', error);
-  }
-};
+export async function pingPreviewMode(): Promise<void> {
+  await fetch('/api/preview/ping', {
+    method: 'POST',
+  });
+}

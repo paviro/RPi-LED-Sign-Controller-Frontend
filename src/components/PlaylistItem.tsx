@@ -58,8 +58,8 @@ export default function PlaylistItem({
   
   // Generate display text based on playlist item configuration (scroll vs static)
   const getItemDetails = () => {
-    if (item.scroll) {
-      return `Scrolling · ${item.speed} px/s · ${item.repeat_count} repeats`;
+    if (item.content.data.scroll) {
+      return `Scrolling · ${item.content.data.speed} px/s · ${item.repeat_count} repeats`;
     } else {
       return `Static · ${item.duration} seconds`;
     }
@@ -67,7 +67,7 @@ export default function PlaylistItem({
   
   // Convert content type to title case for display
   const getContentTypeLabel = () => {
-    return item.content_type.charAt(0).toUpperCase() + item.content_type.slice(1);
+    return item.content.type.charAt(0).toUpperCase() + item.content.type.slice(1);
   };
 
   // Toggle mobile actions menu with stopPropagation to prevent document click handler from firing
@@ -102,7 +102,7 @@ export default function PlaylistItem({
       <div className="flex-grow flex flex-col w-[calc(100%-48px)]">
         {/* Item title/text */}
         <div className="font-medium text-gray-800 dark:text-gray-200 truncate">
-          {item.text}
+          {item.content.data.text}
         </div>
         
         {/* Item details for mobile view */}

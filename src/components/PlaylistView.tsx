@@ -39,7 +39,7 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
         setPlaylistItems(items);
         
         const brightnessData = await fetchBrightness();
-        setBrightness(brightnessData.value);
+        setBrightness(brightnessData.brightness);
       } catch (error) {
         setStatus({
           message: `Error loading data: ${error instanceof Error ? error.message : 'Unknown error'}`,
