@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { fetchPlaylistItem, createPlaylistItem } from '../lib/api';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { fetchPlaylistItem, createPlaylistItem, startPreviewMode, exitPreviewMode, pingPreviewMode } from '../lib/api';
 import TextEditor from './TextEditor';
 import { PlaylistItem } from '../types';
 import StatusMessage from './StatusMessage';
 import BorderEffectSelector from './BorderEffectSelector';
+import { debounce } from 'lodash';
 
 interface EditorContentProps {
   itemId: string | null;
@@ -48,7 +49,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
   
   // Speed preset management
   const [speedPreset, setSpeedPresetState] = useState<'slow' | 'normal' | 'fast' | 'custom'>('normal');
-
+  
   // Function to generate a random vibrant color
   const getRandomColor = (): [number, number, number] => {
     // Generate colors with at least one channel at full intensity for vibrancy
@@ -66,11 +67,174 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     
     return [r, g, b];
   };
-
+  
   // Initialize with a random vibrant color instead of red
   const [gradientColors, setGradientColors] = useState<Array<[number, number, number]>>([
     getRandomColor()
   ]);
+
+  // Add state to track if we're in preview mode
+  const [previewActive, setPreviewActive] = useState(false);
+  
+  // Create a debounced version of the preview update function
+  // This prevents making too many API calls when the user is typing quickly
+  const updatePreview = useCallback((previewItem: Partial<PlaylistItem>) => {
+    startPreviewMode(previewItem);
+  }, []);
+  
+  // We'll use debouncing specifically for text changes
+  const debouncedUpdatePreview = useRef(debounce(updatePreview, 50)).current;
+  
+  // Memoize the getBorderEffectObject function with useCallback
+  const getBorderEffectObject = useCallback(() => {
+    switch (selectedBorderEffect) {
+      case 'none':
+        return { None: null };
+      case 'rainbow':
+        return { Rainbow: null };
+      case 'pulse':
+        return { Pulse: { colors: gradientColors } };
+      case 'sparkle':
+        return { Sparkle: { colors: gradientColors } };
+      case 'gradient':
+        return { Gradient: { colors: gradientColors } };
+      default:
+        return { None: null };
+    }
+  }, [selectedBorderEffect, gradientColors]);
+  
+  // Memoize the getPreviewItem function with useCallback
+  const getPreviewItem = useCallback((): Partial<PlaylistItem> => {
+    return {
+      content_type: 'Text',
+      text: formData.text || 'Edit Mode',
+      color: selectedColor,
+      scroll: formData.scroll || false,
+      speed: formData.speed || 50,
+      duration: formData.duration || 10,
+      repeat_count: formData.repeat_count || 1,
+      border_effect: getBorderEffectObject(),
+      colored_segments: textSegments.length > 0 ? textSegments : null
+    };
+  }, [
+    formData.text,
+    formData.scroll,
+    formData.speed,
+    formData.duration,
+    formData.repeat_count,
+    selectedColor,
+    getBorderEffectObject,
+    textSegments
+  ]);
+  
+  // Keep the initialization ref
+  const previewInitialized = useRef(false);
+
+  // Add an interval ref to store the ping interval
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize preview mode and set up ping interval
+  useEffect(() => {
+    // Start preview mode with current settings and configure ping
+    const setupPreview = async () => {
+      try {
+        const initialPreview = getPreviewItem();
+        await startPreviewMode(initialPreview);
+        setPreviewActive(true);
+        previewInitialized.current = true;
+        
+        // Start the ping interval
+        startPingInterval();
+      } catch (error) {
+        // Include error details in the status message
+        setStatus({
+          message: `Failed to start preview mode: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          type: 'error'
+        });
+      }
+    };
+
+    // Configure ping interval to keep preview session alive
+    const startPingInterval = () => {
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
+      
+      // Send a ping every 4 seconds (server timeout is 5 seconds)
+      pingIntervalRef.current = setInterval(() => {
+        pingPreviewMode();
+      }, 4000);
+    };
+
+    // Only initialize once
+    if (!previewInitialized.current) {
+      setupPreview();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      // Stop ping interval
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      
+      // Exit preview mode on unmount if it was initialized
+      if (previewInitialized.current) {
+        exitPreviewMode();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // Run only on component mount/unmount
+
+  // Split update effect for regular updates vs text changes to utilize debouncing
+  useEffect(() => {
+    // Don't update until preview is initialized and loading is complete
+    if (!previewInitialized.current || loading) return;
+    
+    // Use debounced update for text changes for better performance
+    const previewItem = getPreviewItem();
+    debouncedUpdatePreview(previewItem);
+    
+  }, [formData.text, loading, debouncedUpdatePreview, getPreviewItem]);
+
+  // This effect handles immediate updates for UI controls and styles
+  useEffect(() => {
+    // Don't update until preview is initialized and loading is complete
+    if (!previewInitialized.current || loading) return;
+    
+    // Get the preview item
+    const previewItem = getPreviewItem();
+    
+    // Update the preview immediately for visual elements
+    updatePreview(previewItem);
+    
+  }, [
+    // Only include visual elements that need immediate feedback
+    selectedColor,
+    selectedBorderEffect,
+    gradientColors,
+    formData.scroll,
+    formData.speed,
+    formData.duration,
+    formData.repeat_count,
+    loading,
+    updatePreview,
+    getPreviewItem
+  ]);
+  
+  // Handle navigation back to playlist view
+  const handleBack = () => {
+    // Stop ping interval
+    if (pingIntervalRef.current) {
+      clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+    
+    // Let unmount cleanup handle exiting preview mode
+    setPreviewActive(false);
+    onBack();
+  };
 
   // Add a new random color to the gradient
   const handleAddGradientColor = () => {
@@ -195,9 +359,28 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     setTextSegments(segments);
   };
   
-  // Handle border effect selection
+  // Handle border effect selection - update directly
   const handleBorderEffectChange = (effect: string) => {
     setSelectedBorderEffect(effect);
+    
+    // Immediately update preview for border effect changes
+    if (previewActive && !loading) {
+      // Force immediate update with the new effect
+      const updatedItem = {
+        ...getPreviewItem(),
+        border_effect: (function() {
+          switch (effect) {
+            case 'none': return { None: null };
+            case 'rainbow': return { Rainbow: null };
+            case 'pulse': return { Pulse: { colors: gradientColors } };
+            case 'sparkle': return { Sparkle: { colors: gradientColors } };
+            case 'gradient': return { Gradient: { colors: gradientColors } };
+            default: return { None: null };
+          }
+        })()
+      };
+      updatePreview(updatedItem);
+    }
   };
   
   // Remove a color from the gradient
@@ -215,7 +398,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     }
   }, [gradientColors.length]);
   
-  // Handle form submission
+  // Save the current playlist item
   const handleSave = async () => {
     if (!formData.text || formData.text.trim() === '') {
       setStatus({ message: 'Please enter message text', type: 'error' });
@@ -225,29 +408,9 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
     setSaving(true);
     
     try {
-      // Prepare border effect object based on selected effect type
-      let borderEffect;
-      switch (selectedBorderEffect) {
-        case 'none':
-          borderEffect = { None: null };
-          break;
-        case 'rainbow':
-          borderEffect = { Rainbow: null };
-          break;
-        case 'pulse':
-          borderEffect = { Pulse: { colors: gradientColors } };
-          break;
-        case 'sparkle':
-          borderEffect = { Sparkle: { colors: gradientColors } };
-          break;
-        case 'gradient':
-          borderEffect = { Gradient: { colors: gradientColors } };
-          break;
-        default:
-          borderEffect = { None: null };
-      }
+      const borderEffect = getBorderEffectObject();
       
-      // Prepare colored segments for API submission
+      // Prepare colored segments
       const apiColoredSegments = textSegments.length > 0
         ? textSegments.map(seg => ({
             start: seg.start,
@@ -257,7 +420,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
           }))
         : null;
       
-      // Create base playlist item from form data
+      // Create item data
       const baseItem: Partial<PlaylistItem> = {
         content_type: 'Text',
         text: formData.text || '',
@@ -271,17 +434,13 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
       };
       
       if (isNewItem) {
-        // For new items - create (POST)
         await createPlaylistItem(baseItem);
-        onBack();
       } else if (itemId) {
-        // For existing items - update (PUT)
         const completeItem = {
           ...baseItem,
           id: itemId
         };
         
-        // Direct API call to update the item
         const response = await fetch(`${API_BASE_URL}/playlist/items/${itemId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -289,12 +448,19 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
         });
         
         if (!response.ok) {
-          const error = `HTTP error ${response.status}`;
-          throw new Error(error);
+          throw new Error(`HTTP error ${response.status}`);
         }
-        
-        onBack();
       }
+      
+      // Stop ping interval
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      
+      // Let unmount cleanup handle exiting preview mode
+      setPreviewActive(false);
+      onBack();
     } catch (error) {
       setStatus({
         message: `Error saving item: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -364,7 +530,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             {isNewItem ? 'Add New Item' : 'Edit Item'}
           </h2>
           <button 
-            onClick={onBack}
+            onClick={handleBack}
             className="flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             ← Back to Playlist
@@ -648,7 +814,7 @@ export default function EditorContent({ itemId, onBack }: EditorContentProps) {
             )}
           </button>
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className="px-6 py-2.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors shadow-md"
           >
             Cancel

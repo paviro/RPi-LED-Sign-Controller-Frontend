@@ -53,19 +53,15 @@ export async function fetchPlaylistItems(): Promise<PlaylistItem[]> {
  * @returns Promise containing the created playlist item with generated ID
  */
 export async function createPlaylistItem(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
-  // Empty string indicates new item to the API
-  const newItem = {
-    ...item,
-    id: "" 
-  };
+  // Don't set an ID for new items - let the server generate one
   
-  console.log(`${API_BASE_URL}/playlist/items`, 'POST', newItem as unknown as Record<string, unknown>);
+  console.log(`${API_BASE_URL}/playlist/items`, 'POST', item as unknown as Record<string, unknown>);
   
   try {
     const response = await fetch(`${API_BASE_URL}/playlist/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newItem)
+      body: JSON.stringify(item)
     });
     
     if (!response.ok) {
@@ -345,6 +341,82 @@ export async function testUpdateItem(id: string): Promise<void> {
 }
 
 /**
+ * Starts preview mode by displaying the provided content item on the LED matrix
+ * @param item - The playlist item data to preview
+ */
+export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<void> {
+  console.log(`${API_BASE_URL}/preview`, 'POST', item as unknown as Record<string, unknown>);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    });
+    
+    if (!response.ok) {
+      const error = `HTTP error ${response.status}`;
+      console.log(error);
+      throw new Error(error);
+    }
+    
+    console.log(`${API_BASE_URL}/preview`, response.status, {});
+  } catch (error) {
+    console.log(`Error in startPreviewMode: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+}
+
+/**
+ * Exits preview mode and returns to normal playlist playback
+ */
+export async function exitPreviewMode(): Promise<void> {
+  console.log(`${API_BASE_URL}/preview`, 'DELETE');
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/preview`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      const error = `HTTP error ${response.status}`;
+      console.log(error);
+      throw new Error(error);
+    }
+    
+    console.log(`${API_BASE_URL}/preview`, response.status, {});
+  } catch (error) {
+    console.log(`Error in exitPreviewMode: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+}
+
+/**
+ * Checks if the display is currently in preview mode
+ * @returns Promise containing the preview mode status
+ */
+export async function checkPreviewModeStatus(): Promise<{ active: boolean }> {
+  console.log(`${API_BASE_URL}/preview/status`, 'GET');
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/preview/status`);
+    
+    if (!response.ok) {
+      const error = `HTTP error ${response.status}`;
+      console.log(error);
+      throw new Error(error);
+    }
+    
+    const data = await response.json();
+    console.log(`${API_BASE_URL}/preview/status`, response.status, data);
+    return data;
+  } catch (error) {
+    console.log(`Error in checkPreviewModeStatus: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
+}
+
+/**
  * Type definitions for global methods
  */
 declare global {
@@ -353,3 +425,18 @@ declare global {
     debugPlaylist?: () => Promise<void>;
   }
 }
+
+// Add this function to your existing API functions
+export const pingPreviewMode = async (): Promise<void> => {
+  try {
+    const response = await fetch('/api/preview/ping', {
+      method: 'POST',
+    });
+    
+    if (!response.ok) {
+      console.warn('Preview mode ping failed:', response.status);
+    }
+  } catch (error) {
+    console.error('Error pinging preview mode:', error);
+  }
+};
