@@ -124,7 +124,7 @@ export default function useTextPreview({
       const initialPreview = getPreviewItem();
       await startPreviewMode(initialPreview);
       previewInitialized.current = true;
-      setPreviewActive(false);
+      setPreviewActive(true);
       // Start keep-alive pings
       startPingInterval();
       return { success: true };
