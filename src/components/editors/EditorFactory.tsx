@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { PlaylistItem, ContentType } from '../../types';
-import TextInputEditor from './input/TextInputEditor';
+import TextInputEditor from './input/TextInputEditor/TextInputEditor';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { fetchPlaylistItem } from '../../lib/api';
 
@@ -16,11 +16,13 @@ interface EditorFactoryProps {
 /**
  * EditorFactory determines which specialized editor to render
  * based on the content type of the playlist item.
+ * 
+ * Currently only supports TextInputEditor, but provides a framework
+ * for adding more editor types in the future.
  */
 export default function EditorFactory({ itemId, onBack }: EditorFactoryProps) {
   // For now, we'll directly route to the TextInputEditor
-  // In the future, this will inspect the content type and route accordingly
-  
+  // In the future, this component will determine which editor to use based on content type
   return (
     <TextInputEditor 
       itemId={itemId} 
@@ -28,7 +30,8 @@ export default function EditorFactory({ itemId, onBack }: EditorFactoryProps) {
     />
   );
   
-  /* Future implementation when we add more content types:
+  /* 
+  // Future implementation example for when more content types are added:
   
   const [loading, setLoading] = useState(true);
   const [itemType, setItemType] = useState<ContentType | null>(null);

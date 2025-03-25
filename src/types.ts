@@ -1,4 +1,13 @@
 /**
+ * Common types used throughout the application
+ */
+
+/**
+ * Type for an RGB color represented as a tuple
+ */
+export type RGBColor = [number, number, number];
+
+/**
  * Enum representing content types supported by the system
  */
 export enum ContentType {
@@ -19,10 +28,10 @@ export interface TextFormatting {
  * A segment of text with optional formatting and color
  */
 export interface TextSegment {
-  start: number;       // Start index in the text (character position)
-  end: number;         // End index in the text (exclusive)
-  color?: [number, number, number]; // RGB color values as array
-  formatting?: TextFormatting;      // Optional formatting properties
+  start: number;         // Start index in the text (character position)
+  end: number;           // End index in the text (exclusive)
+  color?: RGBColor;      // RGB color values
+  formatting?: TextFormatting; // Optional formatting properties
 }
 
 /**
@@ -31,7 +40,7 @@ export interface TextSegment {
 export interface TextContent {
   text: string;
   scroll: boolean;
-  color: [number, number, number];
+  color: RGBColor;
   speed: number;
   text_segments?: TextSegment[];
 }
@@ -57,9 +66,9 @@ export interface ContentData {
 export type BorderEffect = 
   | { None: null }
   | { Rainbow: null }
-  | { Pulse: { colors: Array<[number, number, number]> } }
-  | { Sparkle: { colors: Array<[number, number, number]> } }
-  | { Gradient: { colors: Array<[number, number, number]> } };
+  | { Pulse: { colors: Array<RGBColor> } }
+  | { Sparkle: { colors: Array<RGBColor> } }
+  | { Gradient: { colors: Array<RGBColor> } };
 
 /**
  * Main playlist item structure matching DisplayContent in the backend

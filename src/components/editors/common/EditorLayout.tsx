@@ -3,6 +3,19 @@
 import { ReactNode } from 'react';
 import StatusMessage from '../../common/StatusMessage';
 
+/**
+ * Provides a consistent layout for all editor types with title bar, content area, and action buttons
+ * 
+ * @param title - Display title for the editor
+ * @param isNewItem - Whether we're creating a new item or editing an existing one
+ * @param onBack - Handler for returning to the previous screen
+ * @param onSave - Handler for saving the current item
+ * @param isLoading - Whether the editor is in a loading state
+ * @param isSaving - Whether the editor is in a saving state
+ * @param status - Optional status message to display (error, success, info)
+ * @param onStatusClose - Handler for closing the status message
+ * @param children - Content to render in the editor body
+ */
 interface EditorLayoutProps {
   title: string;
   isNewItem: boolean;
