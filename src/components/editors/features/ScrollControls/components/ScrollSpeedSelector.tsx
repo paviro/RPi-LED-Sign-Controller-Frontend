@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 /**
  * Available speed presets
@@ -36,7 +36,6 @@ export function getSpeedFromPreset(preset: SpeedPreset): number {
 interface ScrollSpeedSelectorProps {
   speed: number;
   onSpeedChange: (speed: number) => void;
-  selectedPreset?: SpeedPreset;
   onPresetChange?: (preset: SpeedPreset) => void;
 }
 
@@ -47,18 +46,12 @@ interface ScrollSpeedSelectorProps {
 export default function ScrollSpeedSelector({
   speed,
   onSpeedChange,
-  selectedPreset = 'normal',
   onPresetChange
 }: ScrollSpeedSelectorProps) {
-  // Initialize with the correct preset based on speed
-  const [speedPreset, setSpeedPreset] = useState<SpeedPreset>(
+  // Initialize with the correct preset based on the provided speed
+  const [speedPreset, setSpeedPreset] = useState<SpeedPreset>(() => 
     getPresetFromSpeed(speed)
   );
-
-  // Update internal preset state when prop changes
-  useEffect(() => {
-    setSpeedPreset(selectedPreset);
-  }, [selectedPreset]);
 
   /**
    * Sets speed value based on preset selection
