@@ -23,6 +23,17 @@ export function useBorderEffects(initialEffect?: BorderEffect) {
       : [getRandomColor()]
   );
 
+  // Update effect type and colors when initialEffect changes 
+  useEffect(() => {
+    if (initialEffect) {
+      setBorderEffectType(getBorderEffectType(initialEffect));
+      const colors = getBorderEffectColors(initialEffect);
+      if (colors.length > 0) {
+        setGradientColors(colors);
+      }
+    }
+  }, [initialEffect]);
+
   // Ensure we always have at least one color
   useEffect(() => {
     if (gradientColors.length === 0) {
