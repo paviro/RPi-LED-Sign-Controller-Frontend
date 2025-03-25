@@ -27,6 +27,7 @@ export default function EditorFactory({
   const [contentType, setContentType] = useState(initialContentType);
   const [status, setStatus] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
@@ -100,7 +101,9 @@ export default function EditorFactory({
   // Only show content after initial type is determined
   if (!initialLoadComplete) {
     return (
-      <div className="text-center py-12">Loading editor...</div>
+      <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
     );
   }
   

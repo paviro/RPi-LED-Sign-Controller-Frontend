@@ -61,8 +61,6 @@ export default function TextInputEditor({
     loading,
     saving,
     status,
-    setStatus,
-    isNewItem,
     saveItem
   } = useTextEditorForm({ 
     itemId, 

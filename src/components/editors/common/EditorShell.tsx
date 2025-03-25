@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import StatusMessage from '../../common/StatusMessage';
 import { ContentType } from '../../../types';
 

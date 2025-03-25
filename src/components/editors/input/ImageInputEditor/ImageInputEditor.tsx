@@ -11,6 +11,7 @@ interface ImageInputEditorProps {
 }
 
 export default function ImageInputEditor({ 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   itemId,
   updateStatus,
   updateSaving,
@@ -24,8 +25,12 @@ export default function ImageInputEditor({
   
   // Simulate loading for consistency with TextInputEditor
   useEffect(() => {
+    // We could actually use updateLoading here to inform the parent about loading state
+    updateLoading(true);
+    
     const loadingTimeout = setTimeout(() => {
       setIsLoaded(true);
+      updateLoading(false); // Update parent when done loading
       
       // Fade in the editor after a short delay
       setTimeout(() => {
@@ -44,7 +49,7 @@ export default function ImageInputEditor({
       clearTimeout(loadingTimeout);
       clearTimeout(indicatorTimeout);
     };
-  }, []);
+  }, [isLoaded, updateLoading]);
   
   // Update parent component saving state
   useEffect(() => {
@@ -104,7 +109,7 @@ export default function ImageInputEditor({
           Coming Soon
         </h3>
         <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-          Image support is coming soon! You'll soon be able to upload and configure images for your displays.
+          Image support is coming soon! You&apos;ll soon be able to upload and configure images for your displays.
         </p>
       </div>
       
@@ -115,7 +120,7 @@ export default function ImageInputEditor({
         <ul className="space-y-2 text-gray-600 dark:text-gray-400">
           <li className="flex items-center">
             <span className="mr-2 text-green-500">✓</span>
-            Crop you image
+            Crop your image
           </li>
           <li className="flex items-center">
             <span className="mr-2 text-green-500">✓</span>

@@ -106,7 +106,7 @@ export function useTextEditorForm({ itemId, onSuccess }: UseTextEditorFormProps)
     };
     
     loadItem();
-  }, [itemId]); // Without updateTextColor in the dependency array
+  }, [itemId, updateTextColor]);
   
   // Other update methods
   const updateText = useCallback((text: string) => {

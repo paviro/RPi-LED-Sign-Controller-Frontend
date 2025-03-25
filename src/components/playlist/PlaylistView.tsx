@@ -38,9 +38,7 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
       
       // Show loading indicator after delay if loading takes too long
       const indicatorTimeout = setTimeout(() => {
-        if (loading) {
-          setShowLoadingIndicator(true);
-        }
+        setShowLoadingIndicator(true);
       }, 500);
       
       try {
@@ -67,6 +65,23 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
     
     loadData();
   }, []);
+  
+  useEffect(() => {
+    let indicatorTimeout: NodeJS.Timeout;
+    
+    if (loading) {
+      // Only show loading indicator if loading takes more than 500ms
+      indicatorTimeout = setTimeout(() => {
+        setShowLoadingIndicator(true);
+      }, 500);
+    } else {
+      setShowLoadingIndicator(false);
+    }
+    
+    return () => {
+      clearTimeout(indicatorTimeout);
+    };
+  }, [loading]);
   
   // Handle item removal - removes item from server and updates local state
   const handleRemoveItem = async (id: string) => {

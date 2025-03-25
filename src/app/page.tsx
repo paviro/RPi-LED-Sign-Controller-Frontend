@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
