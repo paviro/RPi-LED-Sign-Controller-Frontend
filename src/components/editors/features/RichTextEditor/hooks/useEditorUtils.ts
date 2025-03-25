@@ -36,8 +36,12 @@ export const useEditorUtils = ({
     // Save for later use if needed (not using refs here, but could be passed in)
     const selectionData = hasSelection ? { from, to } : null;
     
-    // Perform the operation
-    operation();
+    try {
+      // Perform the operation
+      operation();
+    } catch (error) {
+      console.error('Error in operation:', error);
+    }
     
     // Restore selection after the editor updates
     if (hasSelection) {

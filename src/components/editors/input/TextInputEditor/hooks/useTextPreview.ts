@@ -46,22 +46,32 @@ export default function useTextPreview({
    * Creates a preview item from current form data
    */
   const getPreviewItem = useCallback((): Partial<PlaylistItem> => {
-    return {
-      duration: formData.duration || 10,
-      repeat_count: formData.repeat_count || 1,
+    // Determine if scrolling is enabled
+    const isScrolling = formData.content?.data?.scroll || false;
+    
+    const previewItem: Partial<PlaylistItem> = {
       border_effect: getBorderEffectObject(),
       content: {
         type: ContentType.Text,
         data: {
           type: 'Text',
           text: formData.content?.data?.text || 'Edit Mode',
-          scroll: formData.content?.data?.scroll || false,
+          scroll: isScrolling,
           color: selectedColor,
           speed: formData.content?.data?.speed || 50,
           text_segments: textSegments.length > 0 ? textSegments : undefined
         }
       }
     };
+    
+    // Add only the appropriate timing parameter based on scroll setting
+    if (isScrolling) {
+      previewItem.repeat_count = formData.repeat_count || 1;
+    } else {
+      previewItem.duration = formData.duration || 10;
+    }
+    
+    return previewItem;
   }, [
     formData.duration,
     formData.repeat_count,
@@ -114,7 +124,7 @@ export default function useTextPreview({
       const initialPreview = getPreviewItem();
       await startPreviewMode(initialPreview);
       previewInitialized.current = true;
-      setPreviewActive(true);
+      setPreviewActive(false);
       // Start keep-alive pings
       startPingInterval();
       return { success: true };

@@ -75,8 +75,8 @@ export type BorderEffect =
  */
 export interface PlaylistItem {
   id: string;
-  duration: number;        // Display duration in seconds
-  repeat_count: number;    // Number of times to repeat
+  duration?: number;        // Display duration in seconds (optional)
+  repeat_count?: number;    // Number of times to repeat (optional)
   border_effect: BorderEffect | null; // Optional border effect
   content: ContentData;
 }

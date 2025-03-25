@@ -95,6 +95,7 @@ export default function TextEditor({
       }),
     ],
     content: initialValue,
+    immediatelyRender: false,
     parseOptions: {
       preserveWhitespace: 'full',
     },

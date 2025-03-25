@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   fetchPlaylistItem, 
   createPlaylistItem, 
@@ -42,7 +42,10 @@ export function useTextEditorForm({ itemId, onSuccess }: UseTextEditorFormProps)
   // Track text segments with color formatting
   const [textSegments, setTextSegments] = useState<TextSegment[]>([]);
   
-  // Move the updateTextColor function definition before the useEffect that uses it
+  // Use a ref to track if data has been loaded initially
+  const initialDataLoadedRef = useRef(false);
+  
+  // Update text color in both state and form
   const updateTextColor = useCallback((color: RGBColor) => {
     if (
       textColor[0] !== color[0] ||
@@ -63,9 +66,14 @@ export function useTextEditorForm({ itemId, onSuccess }: UseTextEditorFormProps)
     }
   }, [textColor]);
   
-  // Load item data when itemId changes
+  // Load item data when itemId changes - BUT ONLY ONCE
   useEffect(() => {
     const loadItem = async () => {
+      // Skip if we've already loaded data for this item
+      if (initialDataLoadedRef.current && itemId) {
+        return;
+      }
+      
       setLoading(true);
       
       if (itemId) {
@@ -84,6 +92,8 @@ export function useTextEditorForm({ itemId, onSuccess }: UseTextEditorFormProps)
           }
           
           setIsNewItem(false);
+          // Mark initial data as loaded
+          initialDataLoadedRef.current = true;
         } catch (error) {
           setStatus({
             message: `Error loading item: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -96,7 +106,7 @@ export function useTextEditorForm({ itemId, onSuccess }: UseTextEditorFormProps)
     };
     
     loadItem();
-  }, [itemId, updateTextColor]);
+  }, [itemId]); // Without updateTextColor in the dependency array
   
   // Other update methods
   const updateText = useCallback((text: string) => {

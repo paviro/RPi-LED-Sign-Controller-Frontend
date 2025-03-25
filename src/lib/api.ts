@@ -53,12 +53,22 @@ export async function fetchPlaylistItems(): Promise<PlaylistItem[]> {
  * @returns Promise containing the created playlist item with generated ID
  */
 export async function createPlaylistItem(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+  // Clone the item to avoid modifying the original
+  const itemToSend = { ...item };
+  
+  // If scroll is enabled, remove duration; if disabled, remove repeat_count
+  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
+    delete itemToSend.duration;
+  } else {
+    delete itemToSend.repeat_count;
+  }
+  
   const response = await fetch('/api/playlist/items', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(item),
+    body: JSON.stringify(itemToSend),
   });
   
   if (!response.ok) {
@@ -98,15 +108,25 @@ export async function fetchPlaylistItem(id: string): Promise<PlaylistItem> {
  * @returns Promise containing the updated playlist item
  */
 export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+  // Clone the item to avoid modifying the original
+  const itemToSend = { 
+    ...item,
+    id: id 
+  };
+  
+  // If scroll is enabled, remove duration; if disabled, remove repeat_count
+  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
+    delete itemToSend.duration;
+  } else {
+    delete itemToSend.repeat_count;
+  }
+  
   const response = await fetch(`/api/playlist/items/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      ...item,
-      id: id
-    }),
+    body: JSON.stringify(itemToSend),
   });
   
   if (!response.ok) {
@@ -270,12 +290,22 @@ export async function updateBrightnessSimple(value: number): Promise<void> {
  * @returns Promise containing the playlist item being previewed
  */
 export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+  // Clone the item to avoid modifying the original
+  const itemToSend = { ...item };
+  
+  // If scroll is enabled, remove duration; if disabled, remove repeat_count
+  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
+    delete itemToSend.duration;
+  } else {
+    delete itemToSend.repeat_count;
+  }
+  
   const response = await fetch('/api/preview', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(item),
+    body: JSON.stringify(itemToSend),
   });
   
   if (!response.ok) {
