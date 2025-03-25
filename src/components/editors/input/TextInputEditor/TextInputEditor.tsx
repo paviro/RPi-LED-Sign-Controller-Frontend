@@ -1,17 +1,20 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import TextEditor from '../../features/RichTextEditor/RichTextEditor';
 import ScrollControls from '../../features/ScrollControls/ScrollControls';
 import BorderEffectSelector from '../../features/BorderEffectSelector/BorderEffectSelector';
-import EditorLayout from '../../common/EditorLayout';
 import useTextPreview from './hooks/useTextPreview';
 import { useTextEditorForm } from './hooks/useTextEditorForm';
 import { useBorderEffects } from '../../features/BorderEffectSelector/hooks/useBorderEffects';
 
 interface TextInputEditorProps {
   itemId: string | null;
-  onBack: () => void;
+  updateStatus: (status: { message: string; type: "error" | "success" | "info" } | null) => void;
+  updateSaving: (saving: boolean) => void;
+  updateLoading: (loading: boolean) => void;
+  onBack?: () => void;
+  registerExitPreview?: (exitFn: () => void) => void;
 }
 
 /**
@@ -23,7 +26,26 @@ interface TextInputEditorProps {
  * - Border effects selection
  * - Live preview
  */
-export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps) {
+export default function TextInputEditor({ 
+  itemId,
+  updateStatus,
+  updateSaving,
+  updateLoading,
+  onBack,
+  registerExitPreview
+}: TextInputEditorProps) {
+  // Create a wrapper function that ensures onBack is always provided
+  const handleSuccess = useCallback(() => {
+    if (onBack) {
+      onBack();
+    }
+  }, [onBack]);
+
+  // Track when the form data is fully loaded
+  const [isFormLoaded, setIsFormLoaded] = useState(false);
+  const [showLoadingIndicator, setShowLoadingIndicator] = useState(false);
+  const [visible, setVisible] = useState(false);
+
   // Use our enhanced text editor form hook
   const {
     form,
@@ -44,8 +66,56 @@ export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps
     saveItem
   } = useTextEditorForm({ 
     itemId, 
-    onSuccess: onBack 
+    onSuccess: handleSuccess
   });
+  
+  // When form data changes, mark the form as loaded if it contains data
+  useEffect(() => {
+    if (form && !loading) {
+      // Mark as loaded when we have form data and we're not loading
+      setIsFormLoaded(true);
+      
+      // Fade in the editor
+      setTimeout(() => {
+        setVisible(true);
+      }, 50);
+    }
+  }, [form, loading]);
+
+  // Show loading indicator only if loading takes longer than expected
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (loading) {
+      // Only show loading indicator if loading takes more than 500ms
+      timeoutId = setTimeout(() => {
+        setShowLoadingIndicator(true);
+      }, 500);
+    } else {
+      setShowLoadingIndicator(false);
+    }
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [loading]);
+
+  // Update parent component loading state
+  useEffect(() => {
+    updateLoading(loading);
+  }, [loading, updateLoading]);
+
+  // Update parent status if we have one
+  useEffect(() => {
+    if (status) {
+      updateStatus(status);
+    }
+  }, [status, updateStatus]);
+
+  // Update parent saving state
+  useEffect(() => {
+    updateSaving(saving);
+  }, [saving, updateSaving]);
   
   // Use border effects hook
   const {
@@ -58,7 +128,7 @@ export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps
     getBorderEffectObject
   } = useBorderEffects(form.border_effect || undefined);
   
-  // Use our specialized text preview hook - no need to call refresh methods
+  // Use our specialized text preview hook
   const preview = useTextPreview({
     formData: form,
     selectedColor: textColor,
@@ -66,12 +136,6 @@ export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps
     getBorderEffectObject,
     loading
   });
-  
-  // Handle navigation back to playlist view
-  const handleBack = useCallback(() => {
-    preview.stopPreview();
-    onBack();
-  }, [preview, onBack]);
   
   // Handle border effect selection
   const handleBorderEffectChange = useCallback((effect: string) => {
@@ -83,25 +147,49 @@ export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps
     }
   }, [setBorderEffectType, preview, loading]);
   
-  // Save the item
-  const handleSave = useCallback(async () => {
-    const borderEffect = getBorderEffectObject();
-    await saveItem(borderEffect);
-    preview.stopPreview();
+  // Listen for save event from parent
+  useEffect(() => {
+    const handleSave = async () => {
+      const borderEffect = getBorderEffectObject();
+      await saveItem(borderEffect);
+      preview.stopPreview();
+    };
+
+    document.addEventListener('editor-save', handleSave);
+    return () => {
+      document.removeEventListener('editor-save', handleSave);
+    };
   }, [getBorderEffectObject, saveItem, preview]);
 
-  // No need for useEffect calls to manually refresh the preview - it's handled internally
+  // Register the stopPreview function so it can be called from parent
+  useEffect(() => {
+    if (registerExitPreview && preview.stopPreview) {
+      registerExitPreview(preview.stopPreview);
+    }
+  }, [registerExitPreview, preview.stopPreview]);
 
+  // If we're still loading the form data and the indicator should be shown
+  if ((loading || !isFormLoaded) && showLoadingIndicator) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-2"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading editor content...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If we're still loading but not showing the indicator yet, render an empty space
+  if (loading || !isFormLoaded) {
+    return <div className="h-40"></div>;
+  }
+
+  // Using a key to force re-render when form data changes
   return (
-    <EditorLayout
-      title="Text Message"
-      isNewItem={isNewItem}
-      onBack={handleBack}
-      onSave={handleSave}
-      isLoading={loading}
-      isSaving={saving}
-      status={status}
-      onStatusClose={() => setStatus(null)}
+    <div 
+      className={`space-y-6 transition-opacity duration-300 ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`} 
+      key={`editor-${form.id || 'new'}`}
     >
       <TextEditor 
         initialValue={form.content?.data?.text || ''}
@@ -131,6 +219,6 @@ export default function TextInputEditor({ itemId, onBack }: TextInputEditorProps
         onAddGradientColor={handleAddGradientColor}
         onRemoveGradientColor={handleRemoveGradientColor}
       />
-    </EditorLayout>
+    </div>
   );
 } 

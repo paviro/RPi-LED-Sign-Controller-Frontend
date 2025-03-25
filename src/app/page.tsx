@@ -1,19 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 // Use dynamic imports to prevent hydration issues
 const PlaylistView = dynamic(() => import('../components/playlist/PlaylistView'), {
   ssr: false,
-  loading: () => <div className="text-center py-12 animate-pulse">Loading playlist view...</div>
+  loading: () => (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  )
 });
 
 // Update this import to use the new EditorFactory
 const EditorFactory = dynamic(() => import('../components/editors/EditorFactory'), {
   ssr: false,
-  loading: () => <div className="text-center py-12 animate-pulse">Loading editor...</div>
+  loading: () => (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  )
 });
 
 export default function HomePage() {
@@ -23,6 +31,9 @@ export default function HomePage() {
   // Store the ID of the item being edited, null when creating a new item
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   
+  // Reference to know when we need to force clean up preview
+  const exitPreviewRef = useRef<(() => void) | null>(null);
+  
   // Helper function to switch to editor view, optionally with an item to edit
   const switchToEditor = (itemId?: string) => {
     setEditingItemId(itemId || null);
@@ -31,8 +42,20 @@ export default function HomePage() {
   
   // Helper function to return to the playlist view
   const switchToPlaylist = () => {
+    // First, call any cleanup function if it exists
+    if (exitPreviewRef.current) {
+      exitPreviewRef.current();
+      exitPreviewRef.current = null;
+    }
+    
+    // Then switch views
     setCurrentView('playlist');
     setEditingItemId(null);
+  };
+  
+  // Register a preview cleanup function
+  const registerExitPreview = (exitFn: () => void) => {
+    exitPreviewRef.current = exitFn;
   };
   
   return (
@@ -49,11 +72,17 @@ export default function HomePage() {
       </header>
       
       {/* Main content area with loading fallback */}
-      <Suspense fallback={<div className="text-center py-8 animate-pulse">Loading...</div>}>
+      <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>}>
         {currentView === 'playlist' ? (
           <PlaylistView onEditItem={switchToEditor} onAddNewItem={() => switchToEditor()} />
         ) : (
-          <EditorFactory itemId={editingItemId} onBack={switchToPlaylist} />
+          <EditorFactory 
+            itemId={editingItemId} 
+            onBack={switchToPlaylist} 
+            registerExitPreview={registerExitPreview}
+          />
         )}
       </Suspense>
     </main>

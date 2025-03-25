@@ -12,7 +12,10 @@ export type RGBColor = [number, number, number];
  */
 export enum ContentType {
   Text = 'Text',
-  // Future types will be added here: Image, Clock, Animation, etc.
+  Image = 'Image',
+  Animation = 'Animation',
+  Clock = 'Clock'
+  // Future types can be added here
 }
 
 /**

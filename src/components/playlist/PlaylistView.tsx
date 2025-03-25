@@ -27,15 +27,24 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
   const [playlistItems, setPlaylistItems] = useState<PlaylistItemType[]>([]);
   const [brightness, setBrightness] = useState(50);
   const [loading, setLoading] = useState(true);
+  const [showLoadingIndicator, setShowLoadingIndicator] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   
   // Fetch playlist items and brightness settings from the API on component mount
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      
+      // Show loading indicator after delay if loading takes too long
+      const indicatorTimeout = setTimeout(() => {
+        if (loading) {
+          setShowLoadingIndicator(true);
+        }
+      }, 500);
+      
       try {
         const items = await fetchPlaylistItems();
-        
         setPlaylistItems(items);
         
         const brightnessData = await fetchBrightness();
@@ -47,6 +56,12 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
         });
       } finally {
         setLoading(false);
+        clearTimeout(indicatorTimeout);
+        
+        // Fade in content after loading
+        setTimeout(() => {
+          setVisible(true);
+        }, 50);
       }
     };
     
@@ -158,12 +173,14 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
       
       {/* Playlist Items - Using Container with Same Width as Sections */}
       <div className="py-2">
-        {loading ? (
+        {loading && showLoadingIndicator ? (
           <div className="flex items-center justify-center py-16 bg-white/30 dark:bg-gray-800/30 rounded-xl mx-6">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
           </div>
+        ) : loading ? (
+          <div className="h-40"></div>
         ) : playlistItems.length === 0 ? (
-          <section className="p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+          <section className={`p-5 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-opacity duration-300 ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`}>
             <div className="empty-playlist-message py-10 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-center bg-white/30 dark:bg-gray-800/30">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -172,7 +189,7 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
             </div>
           </section>
         ) : (
-          <div className="space-y-4">
+          <div className={`space-y-4 transition-opacity duration-300 ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`}>
             {playlistItems.map((item, index) => (
               <PlaylistItem 
                 key={item.id}
@@ -191,7 +208,7 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
       </div>
       
       {/* Settings Container with Single Full-Width Card */}
-      <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+      <section className={`bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition-opacity duration-300 ease-in-out ${visible ? 'opacity-100' : 'opacity-0'}`}>
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-5 flex items-center">
           <span className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg mr-3 text-indigo-500">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

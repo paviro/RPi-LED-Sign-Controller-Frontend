@@ -1,74 +1,139 @@
 'use client';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useState, useEffect } from 'react';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { PlaylistItem, ContentType } from '../../types';
+import { useState, useCallback, useEffect } from 'react';
 import TextInputEditor from './input/TextInputEditor/TextInputEditor';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import ImageInputEditor from './input/ImageInputEditor/ImageInputEditor';
+import EditorShell from './common/EditorShell';
 import { fetchPlaylistItem } from '../../lib/api';
+import { ContentType } from '../../types';
 
 interface EditorFactoryProps {
   itemId: string | null;
   onBack: () => void;
+  initialContentType?: ContentType;
+  registerExitPreview?: (exitFn: () => void) => void;
 }
 
 /**
  * EditorFactory determines which specialized editor to render
  * based on the content type of the playlist item.
- * 
- * Currently only supports TextInputEditor, but provides a framework
- * for adding more editor types in the future.
  */
-export default function EditorFactory({ itemId, onBack }: EditorFactoryProps) {
-  // For now, we'll directly route to the TextInputEditor
-  // In the future, this component will determine which editor to use based on content type
-  return (
-    <TextInputEditor 
-      itemId={itemId} 
-      onBack={onBack} 
-    />
-  );
+export default function EditorFactory({ 
+  itemId, 
+  onBack, 
+  initialContentType = ContentType.Text,
+  registerExitPreview 
+}: EditorFactoryProps) {
+  const [contentType, setContentType] = useState(initialContentType);
+  const [status, setStatus] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
-  /* 
-  // Future implementation example for when more content types are added:
-  
-  const [loading, setLoading] = useState(true);
-  const [itemType, setItemType] = useState<ContentType | null>(null);
-  
+  // Load content type from existing item if we're editing
   useEffect(() => {
-    async function loadItemType() {
-      if (itemId) {
-        try {
-          const item = await fetchPlaylistItem(itemId);
-          setItemType(item.content.type);
-        } catch (error) {
+    if (itemId && !initialLoadComplete) {
+      setIsLoading(true);
+      // This is just a placeholder for how you might fetch the content type
+      // You'll need to implement this based on your actual API
+      fetchPlaylistItem(itemId)
+        .then(item => {
+          if (item && item.content && item.content.type) {
+            setContentType(item.content.type);
+          }
+        })
+        .catch(error => {
           console.error("Failed to load item type:", error);
-          // Default to text editor on error
-          setItemType(ContentType.Text);
-        }
-      } else {
-        // New item defaults to text type
-        setItemType(ContentType.Text);
-      }
-      setLoading(false);
+          setStatus({
+            message: "Error loading item. Using default content type.",
+            type: "error"
+          });
+        })
+        .finally(() => {
+          setIsLoading(false);
+          setInitialLoadComplete(true);
+        });
+    } else if (!itemId) {
+      setInitialLoadComplete(true);
     }
-    
-    loadItemType();
-  }, [itemId]);
+  }, [itemId, initialLoadComplete]);
   
-  if (loading) {
-    return <div className="text-center py-12">Loading editor...</div>;
+  // Function to handle content type changes (only for new items)
+  const handleContentTypeChange = (newType: ContentType) => {
+    if (!itemId) { // Only allow changing type for new items
+      setContentType(newType);
+    }
+  };
+  
+  // Handle status close
+  const handleStatusClose = () => {
+    setStatus(null);
+  };
+  
+  // Handle save action
+  const handleSave = useCallback(() => {
+    // Trigger save in the active editor
+    const event = new CustomEvent('editor-save');
+    document.dispatchEvent(event);
+  }, []);
+  
+  // Register exit preview function for text editor
+  const handleRegisterExitPreview = useCallback((exitFn: () => void) => {
+    if (registerExitPreview) {
+      registerExitPreview(exitFn);
+    }
+  }, [registerExitPreview]);
+  
+  // Map content types to their display titles
+  const contentTypeDisplayTitles: Record<ContentType, string> = {
+    [ContentType.Text]: 'Text Message',
+    [ContentType.Image]: 'Image',
+    [ContentType.Animation]: 'Animation',
+    [ContentType.Clock]: 'Clock'
+  };
+
+  // Get the appropriate title for the current content type
+  const getTitle = () => {
+    return contentTypeDisplayTitles[contentType] || 'Content';
+  };
+  
+  // Only show content after initial type is determined
+  if (!initialLoadComplete) {
+    return (
+      <div className="text-center py-12">Loading editor...</div>
+    );
   }
   
-  // Route to the appropriate editor based on content type
-  switch (itemType) {
-    case ContentType.Text:
-      return <TextInputEditor itemId={itemId} onBack={onBack} />;
-    case ContentType.Image:
-      return <ImageInputEditor itemId={itemId} onBack={onBack} />;
-    default:
-      return <div className="text-center py-12">Unsupported content type</div>;
-  }
-  */
+  return (
+    <EditorShell
+      title={getTitle()}
+      isNewItem={!itemId}
+      onBack={onBack}
+      contentType={contentType}
+      onContentTypeChange={handleContentTypeChange}
+      status={status}
+      onStatusClose={handleStatusClose}
+      isSaving={isSaving}
+      onSave={handleSave}
+    >
+      {contentType === ContentType.Text ? (
+        <TextInputEditor 
+          itemId={itemId}
+          updateStatus={setStatus}
+          updateSaving={setIsSaving}
+          updateLoading={setIsLoading}
+          onBack={onBack}
+          registerExitPreview={handleRegisterExitPreview}
+        />
+      ) : contentType === ContentType.Image ? (
+        <ImageInputEditor 
+          itemId={itemId}
+          updateStatus={setStatus}
+          updateSaving={setIsSaving}
+          updateLoading={setIsLoading}
+          onBack={onBack}
+        />
+      ) : null}
+    </EditorShell>
+  );
 } 
