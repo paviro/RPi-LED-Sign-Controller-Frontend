@@ -6,7 +6,8 @@ import {
   removePlaylistItem, 
   updatePlaylistOrder, 
   fetchBrightness, 
-  updateBrightnessSimple 
+  updateBrightnessSimple,
+  subscribeToPlaylistEvents
 } from '../../lib/api';
 import PlaylistItem from './PlaylistItem';
 import BrightnessControl from './controls/BrightnessControl';
@@ -64,6 +65,39 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
     };
     
     loadData();
+    
+    // Subscribe to real-time playlist updates
+    const unsubscribe = subscribeToPlaylistEvents(
+      (data) => {
+        console.log('Playlist update received:', data.action);
+        
+        // Update the playlist items based on the action type
+        switch (data.action) {
+          case 'Add':
+          case 'Update':
+          case 'Delete':
+          case 'Reorder':
+            // For all actions, just replace the entire items array
+            // This is the simplest approach that handles all update types
+            setPlaylistItems(data.items);
+            break;
+          default:
+            console.warn('Unknown playlist update action:', data.action);
+        }
+      },
+      (error) => {
+        console.error('Playlist event subscription error:', error);
+        setStatus({
+          message: 'Lost connection to playlist updates. Please refresh the page.',
+          type: 'error'
+        });
+      }
+    );
+    
+    // Clean up the subscription when the component unmounts
+    return () => {
+      unsubscribe();
+    };
   }, []);
   
   useEffect(() => {

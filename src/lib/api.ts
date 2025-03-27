@@ -443,6 +443,92 @@ export async function checkPreviewSessionOwnership(sessionId: string): Promise<{
 }
 
 /**
+ * Checks if a preview is currently active
+ * @returns Promise containing the preview status
+ */
+export async function checkPreviewStatus(): Promise<{ active: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/preview/status`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to check preview status');
+  }
+  
+  return response.json();
+}
+
+/**
+ * Creates an EventSource connection to listen for editor lock events
+ * @param onLockChange - Callback function that receives the lock status
+ * @returns Cleanup function to close the connection
+ */
+export function subscribeToEditorLockEvents(
+  onLockChange: (lockData: { locked: boolean; locked_by?: string }) => void,
+  onError?: (error: Event) => void
+): () => void {
+  const eventSource = new EventSource('/api/events/editor');
+  
+  // Handle incoming messages
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onLockChange(data);
+    } catch (error) {
+      console.error('Error parsing editor lock event data:', error);
+    }
+  };
+  
+  // Handle connection errors
+  eventSource.onerror = (error) => {
+    console.error('EventSource connection error:', error);
+    if (onError) {
+      onError(error);
+    }
+    // The browser will attempt to reconnect automatically
+  };
+  
+  // Return a cleanup function
+  return () => {
+    eventSource.close();
+  };
+}
+
+/**
+ * Creates an EventSource connection to listen for playlist update events
+ * @param onPlaylistUpdate - Callback function that receives playlist updates
+ * @returns Cleanup function to close the connection
+ */
+export function subscribeToPlaylistEvents(
+  onPlaylistUpdate: (data: { items: PlaylistItem[], action: 'Add' | 'Update' | 'Delete' | 'Reorder' }) => void,
+  onError?: (error: Event) => void
+): () => void {
+  const eventSource = new EventSource('/api/events/playlist');
+  
+  // Handle incoming messages
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onPlaylistUpdate(data);
+    } catch (error) {
+      console.error('Error parsing playlist event data:', error);
+    }
+  };
+  
+  // Handle connection errors
+  eventSource.onerror = (error) => {
+    console.error('EventSource connection error:', error);
+    if (onError) {
+      onError(error);
+    }
+    // The browser will attempt to reconnect automatically
+  };
+  
+  // Return a cleanup function
+  return () => {
+    eventSource.close();
+  };
+}
+
+/**
  * Type definitions for global methods
  */
 declare global {

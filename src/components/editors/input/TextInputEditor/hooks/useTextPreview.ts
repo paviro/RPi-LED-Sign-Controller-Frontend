@@ -4,7 +4,8 @@ import {
   startPreviewMode, 
   updatePreviewContent,
   exitPreviewMode, 
-  pingPreviewMode 
+  pingPreviewMode,
+  checkPreviewSessionOwnership
 } from '../../../../../lib/api';
 import { PlaylistItem, ContentType, BorderEffect } from '../../../../../types';
 
@@ -35,6 +36,7 @@ const PreviewState = {
   isInitializing: false,
   initPromise: null as Promise<{success: boolean; error?: string}> | null,
   pingInterval: null as NodeJS.Timeout | null,
+  tabWasHidden: false,
   
   // Global methods for managing the preview state
   startPinging: function() {
@@ -85,6 +87,7 @@ export default function useTextPreview({
 }: TextPreviewOptions) {
   // Local state that syncs with global state
   const [previewActive, setPreviewActive] = useState(PreviewState.isActive);
+  const [sessionExpired, setSessionExpired] = useState(false);
   
   // Track if component is mounted
   const mountedRef = useRef(true);
@@ -183,6 +186,7 @@ export default function useTextPreview({
         
         if (mountedRef.current) {
           setPreviewActive(true);
+          setSessionExpired(false);
         }
         
         return { success: true };
@@ -205,6 +209,62 @@ export default function useTextPreview({
     PreviewState.initPromise = promise;
     return promise;
   }, [getPreviewItem]);
+  
+  /**
+   * Checks if the current session is still valid
+   */
+  const checkSessionValidity = useCallback(async () => {
+    if (!PreviewState.sessionId || !PreviewState.isActive) return false;
+    
+    try {
+      const result = await checkPreviewSessionOwnership(PreviewState.sessionId);
+      return result.is_owner;
+    } catch (error) {
+      console.warn('Error checking session validity:', error);
+      return false;
+    }
+  }, []);
+
+  /**
+   * Handle tab visibility changes
+   */
+  const handleVisibilityChange = useCallback(async () => {
+    // Skip if no active session
+    if (!PreviewState.isActive || !PreviewState.sessionId) return;
+    
+    // If tab was hidden and is now visible again
+    if (document.visibilityState === 'visible' && PreviewState.tabWasHidden) {
+      PreviewState.tabWasHidden = false;
+      
+      // Verify if our session is still valid
+      const isValid = await checkSessionValidity();
+      
+      if (!isValid) {
+        console.log('Preview session expired while tab was inactive');
+        
+        // Clean up the current inactive session
+        PreviewState.cleanup();
+        setPreviewActive(false);
+        
+        // Trigger editor factory reset through the editor-session-expired event
+        const editorResetEvent = new CustomEvent('editor-session-expired');
+        document.dispatchEvent(editorResetEvent);
+        
+        // We don't need to set sessionExpired if we're fully reloading
+        // The editor factory will handle checking if another user has locked the editor
+      } else {
+        console.log('Preview session still valid');
+        // Session still valid, ensure pinging is active
+        PreviewState.startPinging();
+        // Update preview content to ensure it's in sync
+        updatePreview(getPreviewItem());
+      }
+    } 
+    // Tab is being hidden
+    else if (document.visibilityState === 'hidden') {
+      PreviewState.tabWasHidden = true;
+    }
+  }, [checkSessionValidity, getPreviewItem, updatePreview]);
 
   /**
    * Stops preview mode - only call this explicitly (e.g. "Back" button)
@@ -235,6 +295,31 @@ export default function useTextPreview({
     if (!PreviewState.isActive || loading || !PreviewState.sessionId) return;
     debouncedUpdatePreview(getPreviewItem());
   }, [loading, getPreviewItem, debouncedUpdatePreview]);
+  
+  // Listen for visibility changes
+  useEffect(() => {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [handleVisibilityChange]);
+
+  // Re-initialize preview if session expired
+  useEffect(() => {
+    if (sessionExpired && !loading) {
+      // Short delay to ensure any pending operations are completed
+      const timeout = setTimeout(() => {
+        setupPreview().then(result => {
+          if (mountedRef.current && !result?.success && result?.error) {
+            console.error('Preview re-initialization failed:', result.error);
+          }
+        });
+      }, 200);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [sessionExpired, loading, setupPreview]);
 
   // Set up preview on mount and ensure preview is active
   useEffect(() => {
@@ -308,12 +393,14 @@ export default function useTextPreview({
     stopPreview,
     refreshTextPreview,
     debouncedRefreshTextPreview,
-    sessionId: PreviewState.sessionId // expose session ID if needed externally
+    sessionId: PreviewState.sessionId, // expose session ID if needed externally
+    sessionExpired
   }), [
     previewActive,
     stopPreview,
     refreshTextPreview,
     debouncedRefreshTextPreview,
-    PreviewState.sessionId
+    PreviewState.sessionId,
+    sessionExpired
   ]);
 } 

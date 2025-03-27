@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import TextInputEditor from './input/TextInputEditor/TextInputEditor';
 import ImageInputEditor from './input/ImageInputEditor/ImageInputEditor';
 import EditorShell from './common/EditorShell';
-import { fetchPlaylistItem } from '../../lib/api';
+import EditorUnavailable from './EditorUnavailable';
+import { fetchPlaylistItem, checkPreviewStatus, subscribeToEditorLockEvents } from '../../lib/api';
 import { ContentType } from '../../types';
 
 interface EditorFactoryProps {
@@ -27,16 +28,101 @@ export default function EditorFactory({
   const [contentType, setContentType] = useState(initialContentType);
   const [status, setStatus] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
+  // Preview lock states
+  const [previewActive, setPreviewActive] = useState(false);
+  const [isCheckingPreview, setIsCheckingPreview] = useState(true);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  
+  // Check if preview is active before loading editor
+  useEffect(() => {
+    const fetchPreviewStatus = async () => {
+      setIsCheckingPreview(true);
+      try {
+        const response = await checkPreviewStatus();
+        setPreviewActive(response.active);
+      } catch (error) {
+        console.error('Error checking preview status:', error);
+        setStatus({
+          message: 'Error checking if another user is editing. Try refreshing the page.',
+          type: 'error'
+        });
+      } finally {
+        setIsCheckingPreview(false);
+      }
+    };
+    
+    fetchPreviewStatus();
+  }, []);
+  
+  // Update the editor lock events effect
+  useEffect(() => {
+    if (!previewActive) return;
+    
+    // Track whether the component is mounted to avoid state updates after unmount
+    let isMounted = true;
+    
+    // Subscribe to editor lock events using the API function
+    const cleanup = subscribeToEditorLockEvents(
+      (data) => {
+        if (!isMounted) return;
+        
+        if (!data.locked) {
+          // Preview is no longer active, we can load the editor
+          setPreviewActive(false);
+          // Reset initial load to refetch the item
+          setInitialLoadComplete(false);
+        }
+      },
+      (error) => {
+        if (!isMounted) return;
+        console.error('Editor lock event stream error:', error);
+      }
+    );
+    
+    // Cleanup function to run on effect cleanup
+    return () => {
+      isMounted = false;
+      cleanup();
+    };
+  }, [previewActive]);
+  
+  // Effect for handling the custom session expiration event - MOVED HERE
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      // Force a re-initialization of the preview check
+      setInitialLoadComplete(false);
+      setIsCheckingPreview(true);
+      
+      // Fetch preview status again
+      const fetchPreviewStatus = async () => {
+        try {
+          const response = await checkPreviewStatus();
+          setPreviewActive(response.active);
+        } catch (error) {
+          console.error('Error checking preview status after session expiration:', error);
+        } finally {
+          setIsCheckingPreview(false);
+        }
+      };
+      
+      fetchPreviewStatus();
+    };
+    
+    // Listen for the custom event
+    document.addEventListener('editor-session-expired', handleSessionExpired);
+    
+    return () => {
+      document.removeEventListener('editor-session-expired', handleSessionExpired);
+    };
+  }, []);
+  
   // Load content type from existing item if we're editing
   useEffect(() => {
-    if (itemId && !initialLoadComplete) {
+    if (itemId && !initialLoadComplete && !previewActive) {
       setIsLoading(true);
-      // This is just a placeholder for how you might fetch the content type
-      // You'll need to implement this based on your actual API
       fetchPlaylistItem(itemId)
         .then(item => {
           if (item && item.content && item.content.type) {
@@ -57,7 +143,7 @@ export default function EditorFactory({
     } else if (!itemId) {
       setInitialLoadComplete(true);
     }
-  }, [itemId, initialLoadComplete]);
+  }, [itemId, initialLoadComplete, previewActive]);
   
   // Function to handle content type changes (only for new items)
   const handleContentTypeChange = (newType: ContentType) => {
@@ -97,6 +183,20 @@ export default function EditorFactory({
   const getTitle = () => {
     return contentTypeDisplayTitles[contentType] || 'Content';
   };
+  
+  // Show loading indicator while checking preview status
+  if (isCheckingPreview) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+  
+  // Show message if preview is active (another user is editing)
+  if (previewActive) {
+    return <EditorUnavailable onBack={onBack} />;
+  }
   
   // Only show content after initial type is determined
   if (!initialLoadComplete) {

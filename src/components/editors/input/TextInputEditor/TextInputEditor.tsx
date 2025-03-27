@@ -166,6 +166,18 @@ export default function TextInputEditor({
     }
   }, [registerExitPreview, preview.stopPreview]);
 
+  // Handle session expiration
+  useEffect(() => {
+    if (preview.sessionExpired && onBack) {
+      // Let the parent component know we need to reload
+      const timer = setTimeout(() => {
+        onBack(); // Navigate back which will cause EditorFactory to re-check
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [preview.sessionExpired, onBack]);
+
   // If we're still loading the form data and the indicator should be shown
   if ((loading || !isFormLoaded) && showLoadingIndicator) {
     return (
