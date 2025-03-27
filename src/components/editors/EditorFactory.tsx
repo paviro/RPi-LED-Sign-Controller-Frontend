@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import TextInputEditor from './input/TextInputEditor/TextInputEditor';
 import ImageInputEditor from './input/ImageInputEditor/ImageInputEditor';
 import EditorShell from './common/EditorShell';
@@ -28,13 +28,12 @@ export default function EditorFactory({
   const [contentType, setContentType] = useState(initialContentType);
   const [status, setStatus] = useState<{ message: string; type: "error" | "success" | "info" } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Preview lock states
   const [previewActive, setPreviewActive] = useState(false);
   const [isCheckingPreview, setIsCheckingPreview] = useState(true);
-  const eventSourceRef = useRef<EventSource | null>(null);
   
   // Check if preview is active before loading editor
   useEffect(() => {
@@ -122,7 +121,6 @@ export default function EditorFactory({
   // Load content type from existing item if we're editing
   useEffect(() => {
     if (itemId && !initialLoadComplete && !previewActive) {
-      setIsLoading(true);
       fetchPlaylistItem(itemId)
         .then(item => {
           if (item && item.content && item.content.type) {
@@ -137,7 +135,6 @@ export default function EditorFactory({
           });
         })
         .finally(() => {
-          setIsLoading(false);
           setInitialLoadComplete(true);
         });
     } else if (!itemId) {

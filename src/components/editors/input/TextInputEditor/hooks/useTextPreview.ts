@@ -400,7 +400,6 @@ export default function useTextPreview({
     stopPreview,
     refreshTextPreview,
     debouncedRefreshTextPreview,
-    PreviewState.sessionId,
     sessionExpired
   ]);
 } 

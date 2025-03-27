@@ -48,7 +48,7 @@ export default function EditorUnavailable({ onBack }: EditorUnavailableProps) {
           
           <div className="text-gray-600 dark:text-gray-400 max-w-md mb-5">
             <p>The LED Panel can only show one preview at a time.</p>
-            <p>You'll be redirected when the editor becomes available.</p>
+            <p>You&apos;ll be redirected when the editor becomes available.</p>
           </div>
           
           {/* Improved progress bar with smoother animation */}
