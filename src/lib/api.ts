@@ -285,11 +285,19 @@ export async function updateBrightnessSimple(value: number): Promise<void> {
 }
 
 /**
+ * Preview mode response type
+ */
+interface PreviewResponse {
+  item: PlaylistItem;
+  session_id: string;
+}
+
+/**
  * Starts preview mode by displaying the provided content item on the LED matrix
  * @param item - The playlist item data to preview
- * @returns Promise containing the playlist item being previewed
+ * @returns Promise containing the preview response with the item and session ID
  */
-export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
+export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<PreviewResponse> {
   // Clone the item to avoid modifying the original
   const itemToSend = { ...item };
   
@@ -300,12 +308,16 @@ export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<Pla
     delete itemToSend.repeat_count;
   }
   
+  const payload = {
+    item: itemToSend
+  };
+  
   const response = await fetch('/api/preview', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(itemToSend),
+    body: JSON.stringify(payload),
   });
   
   if (!response.ok) {
@@ -316,25 +328,115 @@ export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<Pla
 }
 
 /**
- * Exits preview mode and returns to normal playlist playback
+ * Updates the content in preview mode
+ * @param item - The playlist item data to preview
+ * @param sessionId - The session ID returned when preview mode was started
+ * @returns Promise containing the updated preview response
  */
-export async function exitPreviewMode(): Promise<void> {
-  await fetch('/api/preview', {
-    method: 'DELETE',
-  });
-}
-
-/**
- * Checks if the display is currently in preview mode
- * @returns Promise containing the preview mode status
- */
-export async function getPreviewStatus(): Promise<{ active: boolean }> {
-  const response = await fetch('/api/preview/status', {
-    method: 'GET',
+export async function updatePreviewContent(item: Partial<PlaylistItem>, sessionId: string): Promise<PreviewResponse> {
+  // Clone the item to avoid modifying the original
+  const itemToSend = { ...item };
+  
+  // If scroll is enabled, remove duration; if disabled, remove repeat_count
+  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
+    delete itemToSend.duration;
+  } else {
+    delete itemToSend.repeat_count;
+  }
+  
+  const payload = {
+    item: itemToSend,
+    session_id: sessionId
+  };
+  
+  const response = await fetch('/api/preview', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
   
   if (!response.ok) {
-    throw new Error('Failed to get preview status');
+    const status = response.status;
+    if (status === 403) {
+      throw new Error('Session does not own the preview lock');
+    } else if (status === 404) {
+      throw new Error('Not in preview mode');
+    } else {
+      throw new Error(`Failed to update preview: ${response.statusText}`);
+    }
+  }
+  
+  return response.json();
+}
+
+/**
+ * Exits preview mode and returns to normal playlist playback
+ * @param sessionId - The session ID returned when preview mode was started
+ */
+export async function exitPreviewMode(sessionId: string): Promise<void> {
+  const response = await fetch('/api/preview', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  
+  if (!response.ok) {
+    const status = response.status;
+    if (status === 403) {
+      throw new Error('Session does not own the preview lock');
+    } else if (status === 404) {
+      throw new Error('Not in preview mode');
+    } else {
+      throw new Error(`Failed to exit preview mode: ${response.statusText}`);
+    }
+  }
+}
+
+/**
+ * Pings preview mode to keep the session alive
+ * @param sessionId - The session ID returned when preview mode was started
+ */
+export async function pingPreviewMode(sessionId: string): Promise<void> {
+  const response = await fetch('/api/preview/ping', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  
+  if (!response.ok) {
+    const status = response.status;
+    if (status === 403) {
+      console.warn('Session does not own the preview lock');
+    } else if (status === 404) {
+      console.warn('Not in preview mode');
+    } else {
+      console.warn(`Failed to ping preview mode: ${response.statusText}`);
+    }
+  }
+}
+
+/**
+ * Checks if the current session owns the preview lock
+ * @param sessionId - The session ID to check
+ * @returns Promise containing ownership status
+ */
+export async function checkPreviewSessionOwnership(sessionId: string): Promise<{ is_owner: boolean }> {
+  const response = await fetch('/api/preview/session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to check session ownership');
   }
   
   return response.json();
@@ -348,11 +450,4 @@ declare global {
     testItemUpdate?: (id: string) => Promise<void>;
     debugPlaylist?: () => Promise<void>;
   }
-}
-
-// Add this function to your existing API functions
-export async function pingPreviewMode(): Promise<void> {
-  await fetch('/api/preview/ping', {
-    method: 'POST',
-  });
 }
