@@ -87,10 +87,6 @@ export default function PlaylistView({ onEditItem, onAddNewItem }: PlaylistViewP
       },
       (error) => {
         console.error('Playlist event subscription error:', error);
-        setStatus({
-          message: 'Lost connection to playlist updates. Please refresh the page.',
-          type: 'error'
-        });
       }
     );
     
