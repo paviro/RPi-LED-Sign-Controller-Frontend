@@ -12,11 +12,46 @@ interface BrightnessControlProps {
 export default function BrightnessControl({ brightness, onChange }: BrightnessControlProps) {
   const [value, setValue] = useState(brightness);
   const sliderRef = useRef<HTMLInputElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   
   // Sync local state with props when brightness changes externally
   useEffect(() => {
     setValue(brightness);
   }, [brightness]);
+  
+  // Connect to brightness events API using SSE
+  useEffect(() => {
+    // Create EventSource for real-time brightness updates
+    const eventSource = new EventSource('/api/events/brightness');
+    eventSourceRef.current = eventSource;
+    
+    // Listen for brightness updates from the server
+    eventSource.addEventListener('message', (event) => {
+      try {
+        const brightnessData = JSON.parse(event.data);
+        if (typeof brightnessData.brightness === 'number') {
+          setValue(brightnessData.brightness);
+        }
+      } catch (error) {
+        console.error('Error parsing brightness event data:', error);
+      }
+    });
+    
+    // Handle connection status
+    eventSource.addEventListener('open', () => {
+      console.log('Brightness SSE connection established');
+    });
+    
+    eventSource.addEventListener('error', (event) => {
+      console.error('Brightness SSE connection error:', event);
+    });
+    
+    // Clean up the connection when component unmounts
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, []);
   
   // Update slider fill visual based on current value
   useEffect(() => {
