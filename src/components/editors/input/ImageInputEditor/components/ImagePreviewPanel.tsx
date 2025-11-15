@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DisplayInfo } from '../../../../../types';
 import { ImageDetails, Transform } from '../types';
 import { ApplyTransformOptions } from '../hooks/useImageAnimationControls';
@@ -40,7 +40,10 @@ export default function ImagePreviewPanel({
     lastX: number;
     lastY: number;
     scale: number;
+    currentPointerX: number;
+    currentPointerY: number;
   } | null>(null);
+  const axisLockRef = useRef<{ axis: 'x' | 'y'; lockedValue: number } | null>(null);
   const dragCounterRef = useRef(0);
   const [dragActive, setDragActive] = useState(false);
 
@@ -58,8 +61,11 @@ export default function ImagePreviewPanel({
         isDragging: false,
         lastX: imageData.transform.x,
         lastY: imageData.transform.y,
-        scale: imageData.transform.scale
+        scale: imageData.transform.scale,
+        currentPointerX: event.clientX,
+        currentPointerY: event.clientY
       };
+      axisLockRef.current = null;
     },
     [dragActive, imageData, isPlaying]
   );
@@ -67,6 +73,8 @@ export default function ImagePreviewPanel({
   const handlePointerMove = useCallback(
     (event: React.PointerEvent) => {
       if (!dragStateRef.current || !previewRef.current || !panelInfo || dragActive) return;
+      dragStateRef.current.currentPointerX = event.clientX;
+      dragStateRef.current.currentPointerY = event.clientY;
       const boundsEl = previewRef.current;
       const ratioX = panelInfo.width / Math.max(1, boundsEl.clientWidth);
       const ratioY = panelInfo.height / Math.max(1, boundsEl.clientHeight);
@@ -81,8 +89,14 @@ export default function ImagePreviewPanel({
         dragStateRef.current.isDragging = true;
       }
 
-      const nextX = Math.round(dragStateRef.current.initialX + deltaPanelX);
-      const nextY = Math.round(dragStateRef.current.initialY + deltaPanelY);
+      let nextX = Math.round(dragStateRef.current.initialX + deltaPanelX);
+      let nextY = Math.round(dragStateRef.current.initialY + deltaPanelY);
+      const axisLock = axisLockRef.current;
+      if (axisLock?.axis === 'x') {
+        nextY = axisLock.lockedValue;
+      } else if (axisLock?.axis === 'y') {
+        nextX = axisLock.lockedValue;
+      }
       if (dragStateRef.current.lastX === nextX && dragStateRef.current.lastY === nextY) {
         return;
       }
@@ -111,6 +125,7 @@ export default function ImagePreviewPanel({
       }
     }
     dragStateRef.current = null;
+    axisLockRef.current = null;
   }, []);
 
   const handleDragEnter = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -150,6 +165,45 @@ export default function ImagePreviewPanel({
     },
     [onFileSelect]
   );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (!dragStateRef.current || !dragStateRef.current.isDragging) {
+        return;
+      }
+      if (key === 'x' || key === 'y') {
+        axisLockRef.current = {
+          axis: key,
+          lockedValue: key === 'x' ? dragStateRef.current.lastY : dragStateRef.current.lastX
+        };
+        event.preventDefault();
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (axisLockRef.current && axisLockRef.current.axis === key) {
+        if (dragStateRef.current) {
+          if (key === 'x') {
+            dragStateRef.current.startY = dragStateRef.current.currentPointerY;
+            dragStateRef.current.initialY = dragStateRef.current.lastY;
+          } else {
+            dragStateRef.current.startX = dragStateRef.current.currentPointerX;
+            dragStateRef.current.initialX = dragStateRef.current.lastX;
+          }
+        }
+        axisLockRef.current = null;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const handleUploadClick = useCallback(() => {
     if (imageData?.image_id) {
