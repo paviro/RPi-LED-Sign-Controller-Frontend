@@ -3,11 +3,15 @@ import { debounce } from 'lodash';
 import { 
   startPreviewMode, 
   updatePreviewContent,
-  exitPreviewMode, 
-  pingPreviewMode,
   checkPreviewSessionOwnership
 } from '../../../../../lib/api';
-import { PlaylistItem, ContentType, BorderEffect } from '../../../../../types';
+import {
+  PlaylistItem,
+  ContentType,
+  BorderEffect,
+  TextContentDetails
+} from '../../../../../types';
+import PreviewState from '../../../common/previewState';
 
 /**
  * Options for the text preview hook
@@ -29,55 +33,16 @@ interface TextPreviewOptions {
   loading: boolean;
 }
 
-// Global static state to track preview status across component instances
-const PreviewState = {
-  isActive: false,
-  sessionId: null as string | null,
-  isInitializing: false,
-  initPromise: null as Promise<{success: boolean; error?: string}> | null,
-  pingInterval: null as NodeJS.Timeout | null,
-  tabWasHidden: false,
-  
-  // Global methods for managing the preview state
-  startPinging: function() {
-    // Clear any existing interval first
-    this.stopPinging();
-    
-    // Send a ping every 4 seconds as long as we have a session ID
-    this.pingInterval = setInterval(() => {
-      if (this.sessionId) {
-        pingPreviewMode(this.sessionId).catch(err => {
-          console.warn('Ping failed:', err);
-        });
-      }
-    }, 4000);
-  },
-  
-  stopPinging: function() {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-  },
-  
-  // Clean up the entire preview state
-  cleanup: function() {
-    this.stopPinging();
-    
-    if (this.isActive && this.sessionId) {
-      exitPreviewMode(this.sessionId).catch(e => 
-        console.warn('Error exiting preview mode:', e)
-      );
-      
-      this.sessionId = null;
-      this.isActive = false;
-    }
-  }
-};
+// PreviewState is now shared across editors via ../../../common/previewState
 
 /**
  * Custom hook to manage preview functionality for text content
  */
+const isTextContent = (
+  content?: PlaylistItem['content']
+): content is { type: ContentType.Text; data: TextContentDetails } =>
+  content?.type === ContentType.Text && content.data.type === 'Text';
+
 export default function useTextPreview({
   formData,
   selectedColor,
@@ -92,12 +57,17 @@ export default function useTextPreview({
   // Track if component is mounted
   const mountedRef = useRef(true);
 
+  const textContent = useMemo(
+    () => (isTextContent(formData.content) ? formData.content.data : undefined),
+    [formData.content]
+  );
+
   /**
    * Creates a preview item from current form data
    */
   const getPreviewItem = useCallback((): Partial<PlaylistItem> => {
     // Determine if scrolling is enabled
-    const isScrolling = formData.content?.data?.scroll || false;
+    const isScrolling = textContent?.scroll ?? false;
     
     const previewItem: Partial<PlaylistItem> = {
       border_effect: getBorderEffectObject(),
@@ -105,10 +75,10 @@ export default function useTextPreview({
         type: ContentType.Text,
         data: {
           type: 'Text',
-          text: formData.content?.data?.text || 'Edit Mode',
+          text: textContent?.text || 'Edit Mode',
           scroll: isScrolling,
           color: selectedColor,
-          speed: formData.content?.data?.speed || 50,
+          speed: textContent?.speed || 50,
           text_segments: textSegments.length > 0 ? textSegments : undefined
         }
       }
@@ -125,12 +95,10 @@ export default function useTextPreview({
   }, [
     formData.duration,
     formData.repeat_count,
-    formData.content?.data?.text,
-    formData.content?.data?.scroll,
-    formData.content?.data?.speed,
     selectedColor,
     getBorderEffectObject,
-    textSegments
+    textSegments,
+    textContent
   ]);
 
   /**
@@ -360,12 +328,7 @@ export default function useTextPreview({
     if (!PreviewState.pingInterval) {
       PreviewState.startPinging();
     }
-  }, [
-    formData.content?.data?.text,
-    loading,
-    getPreviewItem,
-    debouncedUpdatePreview
-  ]);
+  }, [textContent?.text, loading, getPreviewItem, debouncedUpdatePreview]);
 
   // Watch for essential property changes and update immediately
   useEffect(() => {
@@ -377,8 +340,8 @@ export default function useTextPreview({
       PreviewState.startPinging();
     }
   }, [
-    formData.content?.data?.scroll,
-    formData.content?.data?.speed,
+    textContent?.scroll,
+    textContent?.speed,
     formData.duration,
     formData.repeat_count,
     selectedColor,

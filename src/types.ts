@@ -7,6 +7,34 @@
  */
 export type RGBColor = [number, number, number];
 
+export interface ImageTransform {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+export interface ImageKeyframe {
+  timestamp_ms: number;
+  x: number;
+  y: number;
+  scale: number;
+}
+
+export interface ImageAnimation {
+  keyframes: ImageKeyframe[];
+  iterations?: number | null;
+}
+
+export interface ImageContent {
+  image_id: string;
+  natural_width: number;
+  natural_height: number;
+  transform: ImageTransform;
+  animation?: ImageAnimation | null;
+}
+
+export type ImageContentDetails = { type: 'Image' } & ImageContent;
+
 /**
  * Enum representing content types supported by the system
  */
@@ -48,12 +76,12 @@ export interface TextContent {
   text_segments?: TextSegment[];
 }
 
+export type TextContentDetails = { type: 'Text' } & TextContent;
+
 /**
  * Union type for different content details based on content type
  */
-export type ContentDetails = 
-  | { type: 'Text'; } & TextContent
-  // Future types will be added here: Image, Clock, etc.
+export type ContentDetails = TextContentDetails | ImageContentDetails;
 
 /**
  * Content data structure that includes the type and specific details
@@ -105,6 +133,11 @@ export interface ReorderRequest {
  */
 export interface BrightnessSettings {
   brightness: number;
+}
+
+export interface DisplayInfo {
+  width: number;
+  height: number;
 }
 
 /**
