@@ -5,7 +5,8 @@ import {
   TextContent, 
   ImageContent,
   ClockContent,
-  DisplayInfo
+  DisplayInfo,
+  AnimationContentDetails
 } from '../types';
 
 /**
@@ -16,10 +17,12 @@ const API_BASE_URL = '/api';
 type TextDetails = { type: 'Text' } & TextContent;
 type ImageDetails = { type: 'Image' } & ImageContent;
 type ClockDetails = { type: 'Clock' } & ClockContent;
+type AnimationDetails = { type: 'Animation' } & AnimationContentDetails;
 
 const isTextContent = (details: ContentDetails): details is TextDetails => details.type === ContentType.Text;
 const isImageContent = (details: ContentDetails): details is ImageDetails => details.type === ContentType.Image;
 const isClockContent = (details: ContentDetails): details is ClockDetails => details.type === ContentType.Clock;
+const isAnimationContent = (details: ContentDetails): details is AnimationDetails => details.type === ContentType.Animation;
 
 function normalizeTimingForContent(item: Partial<PlaylistItem>) {
   const details = item.content?.data;
@@ -39,6 +42,8 @@ function normalizeTimingForContent(item: Partial<PlaylistItem>) {
       delete item.repeat_count;
     }
   } else if (isClockContent(details)) {
+    delete item.repeat_count;
+  } else if (isAnimationContent(details)) {
     delete item.repeat_count;
   }
 }

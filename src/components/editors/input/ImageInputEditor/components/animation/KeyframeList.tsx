@@ -30,14 +30,14 @@ export default function KeyframeList({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 disabled:opacity-50"
+            className="px-3 py-1.5 text-sm rounded-lg border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors disabled:opacity-50"
             onClick={onAddKeyframe}
           >
             + Add Keyframe at Current Time
           </button>
           <button
             type="button"
-            className="px-3 py-2 rounded-lg border border-red-200 dark:border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+            className="px-3 py-1.5 text-sm rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
             onClick={onClearAll}
           >
             Clear All

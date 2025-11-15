@@ -91,7 +91,87 @@ export type TextContentDetails = { type: 'Text' } & TextContent;
 /**
  * Union type for different content details based on content type
  */
-export type ContentDetails = TextContentDetails | ImageContentDetails | ClockContentDetails;
+export interface AnimationContentBase {
+  type: 'Animation';
+  preset: AnimationPreset;
+  colors: RGBColor[];
+}
+
+export type PulseAnimationDetails = AnimationContentBase & {
+  preset: 'Pulse';
+  cycle_ms: number;
+};
+
+export type PaletteWaveAnimationDetails = AnimationContentBase & {
+  preset: 'PaletteWave';
+  cycle_ms: number;
+  wave_count: number;
+};
+
+export type DualPulseAnimationDetails = AnimationContentBase & {
+  preset: 'DualPulse';
+  cycle_ms: number;
+  phase_offset: number;
+};
+
+export type ColorFadeAnimationDetails = AnimationContentBase & {
+  preset: 'ColorFade';
+  drift_speed: number;
+};
+
+export type StrobeAnimationDetails = AnimationContentBase & {
+  preset: 'Strobe';
+  flash_ms: number;
+  fade_ms: number;
+  randomize?: boolean;
+  randomization_factor?: number;
+};
+
+export type SparkleAnimationDetails = AnimationContentBase & {
+  preset: 'Sparkle';
+  density: number;
+  twinkle_ms: number;
+};
+
+export type MosaicTwinkleAnimationDetails = AnimationContentBase & {
+  preset: 'MosaicTwinkle';
+  tile_size: number;
+  flow_speed: number;
+  border_size: number;
+  border_color: RGBColor;
+};
+
+export type PlasmaAnimationDetails = AnimationContentBase & {
+  preset: 'Plasma';
+  flow_speed: number;
+  noise_scale: number;
+};
+
+export type AnimationPreset =
+  | 'Pulse'
+  | 'PaletteWave'
+  | 'DualPulse'
+  | 'ColorFade'
+  | 'Strobe'
+  | 'Sparkle'
+  | 'MosaicTwinkle'
+  | 'Plasma';
+
+export type AnimationContentDetails =
+  | PulseAnimationDetails
+  | PaletteWaveAnimationDetails
+  | DualPulseAnimationDetails
+  | ColorFadeAnimationDetails
+  | StrobeAnimationDetails
+  | SparkleAnimationDetails
+  | MosaicTwinkleAnimationDetails
+  | PlasmaAnimationDetails;
+
+export type ContentDetails =
+  | TextContentDetails
+  | ImageContentDetails
+  | ClockContentDetails
+  | AnimationContentDetails;
 
 /**
  * Content data structure that includes the type and specific details

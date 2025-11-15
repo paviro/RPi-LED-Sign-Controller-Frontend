@@ -38,7 +38,7 @@ export default function EditorShell({
   const contentTypes = [
     { id: ContentType.Text, label: 'Text Message', icon: 'message' },
     { id: ContentType.Image, label: 'Image', icon: 'image', disabled: false },
-    { id: ContentType.Animation, label: 'Animation', icon: 'animation', disabled: true },
+    { id: ContentType.Animation, label: 'Animation', icon: 'animation', disabled: false },
     { id: ContentType.Clock, label: 'Clock', icon: 'clock', disabled: false },
   ];
   

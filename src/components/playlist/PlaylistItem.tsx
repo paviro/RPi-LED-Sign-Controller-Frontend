@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
-import { ContentType, PlaylistItem as PlaylistItemType, ClockContentDetails, ClockFormat } from '../../types';
+import { ContentType, PlaylistItem as PlaylistItemType, ClockContentDetails, ClockFormat, AnimationPreset, AnimationContentDetails } from '../../types';
 import { getImageThumbnailUrl } from '../../lib/api';
 
 interface PlaylistItemProps {
@@ -102,6 +102,21 @@ export default function PlaylistItem({
     return `${loops} loop${loops === 1 ? '' : 's'}`;
   };
 
+  // Map animation preset IDs to display names
+  const getAnimationPresetLabel = (preset: AnimationPreset): string => {
+    const presetLabels: Record<AnimationPreset, string> = {
+      'Pulse': 'Full-Screen Pulse',
+      'PaletteWave': 'Palette Wave',
+      'DualPulse': 'Dual-Phase Pulse',
+      'ColorFade': 'Color Fade',
+      'Strobe': 'Strobe',
+      'Sparkle': 'Sparkle Fill',
+      'MosaicTwinkle': 'Mosaic Twinkle',
+      'Plasma': 'Plasma Flow'
+    };
+    return presetLabels[preset] || preset;
+  };
+
   // Generate display text based on playlist item configuration
   const getItemDetails = () => {
     const details = item.content.data;
@@ -133,6 +148,12 @@ export default function PlaylistItem({
       return `Clock · ${formatSeconds(item.duration)}`;
     }
 
+    if (details.type === ContentType.Animation) {
+      const animationDetails = details as AnimationContentDetails;
+      const presetLabel = getAnimationPresetLabel(animationDetails.preset);
+      return `${presetLabel} · ${formatSeconds(item.duration)}`;
+    }
+
     return formatSeconds(item.duration);
   };
   
@@ -148,6 +169,10 @@ export default function PlaylistItem({
     }
     if (details.type === ContentType.Clock) {
       return clockLabel;
+    }
+    if (details.type === ContentType.Animation) {
+      const animationDetails = details as AnimationContentDetails;
+      return getAnimationPresetLabel(animationDetails.preset);
     }
     return '';
   };
