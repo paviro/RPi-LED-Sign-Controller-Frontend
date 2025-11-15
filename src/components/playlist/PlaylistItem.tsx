@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { ContentType, PlaylistItem as PlaylistItemType } from '../../types';
-import { getImageUrl } from '../../lib/api';
+import { getImageThumbnailUrl } from '../../lib/api';
 
 interface PlaylistItemProps {
   item: PlaylistItemType;
@@ -124,7 +124,7 @@ export default function PlaylistItem({
 
   const imageThumbnailUrl =
     item.content.data.type === ContentType.Image && item.content.data.image_id
-      ? getImageUrl(item.content.data.image_id)
+      ? getImageThumbnailUrl(item.content.data.image_id)
       : null;
 
   // Toggle mobile actions menu with stopPropagation to prevent document click handler from firing

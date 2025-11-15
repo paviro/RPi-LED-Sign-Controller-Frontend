@@ -299,6 +299,8 @@ export interface ImageUploadResponse {
   image_id: string;
   width: number;
   height: number;
+  thumbnail_width: number;
+  thumbnail_height: number;
 }
 
 export async function uploadImage(file: File): Promise<ImageUploadResponse> {
@@ -320,6 +322,10 @@ export async function uploadImage(file: File): Promise<ImageUploadResponse> {
 
 export function getImageUrl(imageId: string): string {
   return `${API_BASE_URL}/images/${imageId}`;
+}
+
+export function getImageThumbnailUrl(imageId: string): string {
+  return `${API_BASE_URL}/images/${imageId}/thumbnail`;
 }
 
 export async function fetchDisplayInfo(): Promise<DisplayInfo> {
