@@ -29,11 +29,9 @@ export const useColorFormatting = ({
     // Prevent multiple rapid updates
     if (applyingColorRef.current) return;
     applyingColorRef.current = true;
-    
-    if (onColorChange) {
-      onColorChange(color);
-    }
-    
+
+    const hexColor = rgbToHex(color);
+
     // Resolve selection
     let from: number, to: number;
     if (hasSelectionRef.current && lastSelectionRef.current) {
@@ -44,24 +42,35 @@ export const useColorFormatting = ({
       from = selection.from;
       to = selection.to;
     }
-    
-    if (from === to) {
-      applyingColorRef.current = false;
-      return;
-    }
-    
-    withPreservedSelection(() => {
-      const hexColor = rgbToHex(color);
-      
-      editor.commands.focus();
-      editor.commands.setTextSelection({ from, to });
-      
-      // Apply color formatting
+
+    const hasSelection = from !== to;
+
+    const runColorCommand = () => {
       if (hexColor === "#ffffff") {
         editor.chain().focus().unsetColor().run();
       } else {
         editor.chain().focus().setColor(hexColor).run();
       }
+    };
+
+    if (!hasSelection) {
+      runColorCommand();
+      if (onColorChange) {
+        onColorChange(color);
+      }
+
+      setTimeout(() => {
+        applyingColorRef.current = false;
+      }, 50);
+      return;
+    }
+
+    withPreservedSelection(() => {
+      editor.commands.focus();
+      editor.commands.setTextSelection({ from, to });
+
+      // Apply color formatting to the active selection
+      runColorCommand();
     });
     
     // Reset flag after a short delay

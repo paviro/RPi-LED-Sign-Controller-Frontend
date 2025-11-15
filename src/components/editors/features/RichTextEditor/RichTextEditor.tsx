@@ -2,7 +2,7 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import TextStyle from '@tiptap/extension-text-style';
+import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Underline from '@tiptap/extension-underline';
 import { useEffect, useState, useRef } from 'react';
@@ -53,7 +53,14 @@ export default function TextEditor({
   textSegments = [] 
 }: TextEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [editorColor, setEditorColor] = useState<[number, number, number]>(selectedColor);
   const colorPickerRef = useRef<HTMLDivElement>(null);
+  const typingColorRef = useRef<[number, number, number]>(selectedColor);
+
+  useEffect(() => {
+    setEditorColor(selectedColor);
+    typingColorRef.current = selectedColor;
+  }, [selectedColor]);
   
   // Track editor focus state to prevent content updates during editing
   const isEditorFocused = useRef(false);
@@ -120,7 +127,7 @@ export default function TextEditor({
     onTransaction: ({ transaction }) => {
       // Only process if there's text being added (not on selection changes or deletions)
       if (transaction.docChanged && !applyingColorRef.current) {
-        const hexColor = rgbToHex(selectedColor);
+        const hexColor = rgbToHex(typingColorRef.current);
         
         // Set the color for any new typing - must be scheduled after the current transaction
         setTimeout(() => {
@@ -174,6 +181,12 @@ export default function TextEditor({
     lastSelectionRef,
     applyingColorRef
   });
+
+  const handleApplyColor = (color: [number, number, number]) => {
+    typingColorRef.current = color;
+    setEditorColor(color);
+    applyColor(color);
+  };
   
   // Use rainbow effects hook
   const { applyRainbowEffect } = useRainbowEffects({
@@ -240,12 +253,12 @@ export default function TextEditor({
               activeButton: ledDisplayStyles.activeButton,
               colorSwatch: ledDisplayStyles.colorSwatch
             }}
-            selectedColor={selectedColor}
+            selectedColor={editorColor}
             isBold={isBold}
             isStrikethrough={isStrikethrough}
             isUnderline={isUnderline}
             toggleFormat={toggleFormat}
-            applyColor={applyColor}
+            applyColor={handleApplyColor}
             applyRainbowEffect={applyRainbowEffect}
             showColorPicker={showColorPicker}
             setShowColorPicker={setShowColorPicker}
