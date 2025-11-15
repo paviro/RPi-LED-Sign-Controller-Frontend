@@ -1,25 +1,41 @@
-import { Playlist, PlaylistItem } from '../types';
+import { 
+  Playlist, 
+  PlaylistItem, 
+  ContentDetails, 
+  ContentType, 
+  TextContent, 
+  ImageContent,
+  DisplayInfo
+} from '../types';
 
 /**
  * Base URL for all API endpoints
  */
 const API_BASE_URL = '/api';
 
-/**
- * Updates an entire playlist
- * @param playlist - The playlist data to update
- */
-export async function updatePlaylist(playlist: Playlist): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/playlist`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(playlist),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to update playlist');
+type TextDetails = { type: 'Text' } & TextContent;
+type ImageDetails = { type: 'Image' } & ImageContent;
+
+const isTextContent = (details: ContentDetails): details is TextDetails => details.type === ContentType.Text;
+const isImageContent = (details: ContentDetails): details is ImageDetails => details.type === ContentType.Image;
+
+function normalizeTimingForContent(item: Partial<PlaylistItem>) {
+  const details = item.content?.data;
+  if (!details) return;
+
+  if (isTextContent(details)) {
+    if (details.scroll) {
+      delete item.duration;
+    } else {
+      delete item.repeat_count;
+    }
+  } else if (isImageContent(details)) {
+    const hasAnimation = !!details.animation && (details.animation.keyframes?.length ?? 0) >= 2;
+    if (hasAnimation) {
+      delete item.duration;
+    } else {
+      delete item.repeat_count;
+    }
   }
 }
 
@@ -55,13 +71,7 @@ export async function fetchPlaylistItems(): Promise<PlaylistItem[]> {
 export async function createPlaylistItem(item: Partial<PlaylistItem>): Promise<PlaylistItem> {
   // Clone the item to avoid modifying the original
   const itemToSend = { ...item };
-  
-  // If scroll is enabled, remove duration; if disabled, remove repeat_count
-  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
-    delete itemToSend.duration;
-  } else {
-    delete itemToSend.repeat_count;
-  }
+  normalizeTimingForContent(itemToSend);
   
   const response = await fetch('/api/playlist/items', {
     method: 'POST',
@@ -113,13 +123,7 @@ export async function updatePlaylistItem(id: string, item: Partial<PlaylistItem>
     ...item,
     id: id 
   };
-  
-  // If scroll is enabled, remove duration; if disabled, remove repeat_count
-  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
-    delete itemToSend.duration;
-  } else {
-    delete itemToSend.repeat_count;
-  }
+  normalizeTimingForContent(itemToSend);
   
   const response = await fetch(`/api/playlist/items/${id}`, {
     method: 'PUT',
@@ -292,6 +296,41 @@ interface PreviewResponse {
   session_id: string;
 }
 
+export interface ImageUploadResponse {
+  image_id: string;
+  width: number;
+  height: number;
+}
+
+export async function uploadImage(file: File): Promise<ImageUploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/images`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+  }
+
+  return response.json();
+}
+
+export function getImageUrl(imageId: string): string {
+  return `${API_BASE_URL}/images/${imageId}`;
+}
+
+export async function fetchDisplayInfo(): Promise<DisplayInfo> {
+  const response = await fetch(`${API_BASE_URL}/display/info`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch display info: ${response.status}`);
+  }
+  return response.json();
+}
+
 /**
  * Starts preview mode by displaying the provided content item on the LED matrix
  * @param item - The playlist item data to preview
@@ -300,13 +339,7 @@ interface PreviewResponse {
 export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<PreviewResponse> {
   // Clone the item to avoid modifying the original
   const itemToSend = { ...item };
-  
-  // If scroll is enabled, remove duration; if disabled, remove repeat_count
-  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
-    delete itemToSend.duration;
-  } else {
-    delete itemToSend.repeat_count;
-  }
+  normalizeTimingForContent(itemToSend);
   
   const payload = {
     item: itemToSend
@@ -336,13 +369,7 @@ export async function startPreviewMode(item: Partial<PlaylistItem>): Promise<Pre
 export async function updatePreviewContent(item: Partial<PlaylistItem>, sessionId: string): Promise<PreviewResponse> {
   // Clone the item to avoid modifying the original
   const itemToSend = { ...item };
-  
-  // If scroll is enabled, remove duration; if disabled, remove repeat_count
-  if (itemToSend.content?.data.type === 'Text' && itemToSend.content.data.scroll) {
-    delete itemToSend.duration;
-  } else {
-    delete itemToSend.repeat_count;
-  }
+  normalizeTimingForContent(itemToSend);
   
   const payload = {
     item: itemToSend,

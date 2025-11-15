@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import TextInputEditor from './input/TextInputEditor/TextInputEditor';
 import ImageInputEditor from './input/ImageInputEditor/ImageInputEditor';
 import EditorShell from './common/EditorShell';
@@ -30,6 +30,7 @@ export default function EditorFactory({
   const [isSaving, setIsSaving] = useState(false);
   const [, setIsLoading] = useState(false);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const lastExitPreviewRef = useRef<(() => void) | null>(null);
   
   // Preview lock states
   const [previewActive, setPreviewActive] = useState(false);
@@ -145,6 +146,16 @@ export default function EditorFactory({
   // Function to handle content type changes (only for new items)
   const handleContentTypeChange = (newType: ContentType) => {
     if (!itemId) { // Only allow changing type for new items
+      // Stop any active preview owned by the currently mounted editor
+      if (lastExitPreviewRef.current) {
+        try {
+          lastExitPreviewRef.current();
+        } catch (e) {
+          console.warn('Error stopping previous preview on content type change:', e);
+        } finally {
+          lastExitPreviewRef.current = null;
+        }
+      }
       setContentType(newType);
     }
   };
@@ -163,6 +174,8 @@ export default function EditorFactory({
   
   // Register exit preview function for text editor
   const handleRegisterExitPreview = useCallback((exitFn: () => void) => {
+    // Keep local reference so we can stop preview on type switches
+    lastExitPreviewRef.current = exitFn;
     if (registerExitPreview) {
       registerExitPreview(exitFn);
     }
@@ -232,6 +245,7 @@ export default function EditorFactory({
           updateSaving={setIsSaving}
           updateLoading={setIsLoading}
           onBack={onBack}
+          registerExitPreview={handleRegisterExitPreview}
         />
       ) : null}
     </EditorShell>

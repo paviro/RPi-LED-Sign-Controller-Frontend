@@ -3,11 +3,10 @@ import { debounce } from 'lodash';
 import { 
   startPreviewMode, 
   updatePreviewContent,
-  exitPreviewMode, 
-  pingPreviewMode,
   checkPreviewSessionOwnership
 } from '../../../../../lib/api';
 import { PlaylistItem, ContentType, BorderEffect } from '../../../../../types';
+import PreviewState from '../../../common/previewState';
 
 /**
  * Options for the text preview hook
@@ -29,51 +28,7 @@ interface TextPreviewOptions {
   loading: boolean;
 }
 
-// Global static state to track preview status across component instances
-const PreviewState = {
-  isActive: false,
-  sessionId: null as string | null,
-  isInitializing: false,
-  initPromise: null as Promise<{success: boolean; error?: string}> | null,
-  pingInterval: null as NodeJS.Timeout | null,
-  tabWasHidden: false,
-  
-  // Global methods for managing the preview state
-  startPinging: function() {
-    // Clear any existing interval first
-    this.stopPinging();
-    
-    // Send a ping every 4 seconds as long as we have a session ID
-    this.pingInterval = setInterval(() => {
-      if (this.sessionId) {
-        pingPreviewMode(this.sessionId).catch(err => {
-          console.warn('Ping failed:', err);
-        });
-      }
-    }, 4000);
-  },
-  
-  stopPinging: function() {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-  },
-  
-  // Clean up the entire preview state
-  cleanup: function() {
-    this.stopPinging();
-    
-    if (this.isActive && this.sessionId) {
-      exitPreviewMode(this.sessionId).catch(e => 
-        console.warn('Error exiting preview mode:', e)
-      );
-      
-      this.sessionId = null;
-      this.isActive = false;
-    }
-  }
-};
+// PreviewState is now shared across editors via ../../../common/previewState
 
 /**
  * Custom hook to manage preview functionality for text content

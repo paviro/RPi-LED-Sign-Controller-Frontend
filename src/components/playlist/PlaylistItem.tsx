@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PlaylistItem as PlaylistItemType } from '../../types';
+import { ContentType, PlaylistItem as PlaylistItemType } from '../../types';
+import { getImageUrl } from '../../lib/api';
 
 interface PlaylistItemProps {
   item: PlaylistItemType;
@@ -56,19 +57,74 @@ export default function PlaylistItem({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Generate display text based on playlist item configuration (scroll vs static)
-  const getItemDetails = () => {
-    if (item.content.data.scroll) {
-      return `Scrolling · ${item.content.data.speed} px/s · ${item.repeat_count} repeats`;
-    } else {
-      return `Static · ${item.duration} seconds`;
+  const formatSeconds = (value?: number | null) => {
+    const seconds = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    if (seconds <= 0) {
+      return '0 seconds';
     }
+    const rounded = Math.round(seconds * 10) / 10;
+    if (Number.isInteger(rounded)) {
+      const intVal = rounded;
+      return `${intVal} second${intVal === 1 ? '' : 's'}`;
+    }
+    return `${rounded.toFixed(1)} seconds`;
+  };
+
+  const formatLoops = (value?: number | null) => {
+    if (value === 0) {
+      return 'looping';
+    }
+    const loops = value ?? 1;
+    return `${loops} loop${loops === 1 ? '' : 's'}`;
+  };
+
+  // Generate display text based on playlist item configuration
+  const getItemDetails = () => {
+    const details = item.content.data;
+
+    if (details.type === ContentType.Text) {
+      if (details.scroll) {
+        const repeats = item.repeat_count ?? 1;
+        return `Scrolling · ${details.speed} px/s · ${repeats} repeat${repeats === 1 ? '' : 's'}`;
+      }
+      return `Static · ${formatSeconds(item.duration)}`;
+    }
+
+    if (details.type === ContentType.Image) {
+      const animation = details.animation;
+      const hasAnimation = !!animation && (animation.keyframes?.length ?? 0) >= 2;
+      if (hasAnimation) {
+        const lastTimestampMs = animation.keyframes?.reduce(
+          (max, frame) => Math.max(max, frame.timestamp_ms),
+          0
+        ) ?? 0;
+        const timelineSeconds = lastTimestampMs / 1000;
+        const iterations = item.repeat_count ?? animation?.iterations ?? 1;
+        return `Animated · ${formatSeconds(timelineSeconds)} · ${formatLoops(iterations)}`;
+      }
+      return `Static · ${formatSeconds(item.duration)}`;
+    }
+
+    return `Static · ${formatSeconds(item.duration)}`;
   };
   
   // Convert content type to title case for display
   const getContentTypeLabel = () => {
     return item.content.type.charAt(0).toUpperCase() + item.content.type.slice(1);
   };
+
+  const getItemTitle = () => {
+    const details = item.content.data;
+    if (details.type === ContentType.Text) {
+      return details.text;
+    }
+    return '';
+  };
+
+  const imageThumbnailUrl =
+    item.content.data.type === ContentType.Image && item.content.data.image_id
+      ? getImageUrl(item.content.data.image_id)
+      : null;
 
   // Toggle mobile actions menu with stopPropagation to prevent document click handler from firing
   const toggleMobileActions = (e: React.MouseEvent) => {
@@ -98,12 +154,25 @@ export default function PlaylistItem({
       {/* Visual separator between type badge and content */}
       <div className="mx-2 h-8 w-px bg-gray-200 dark:bg-gray-700 shrink-0"></div>
       
-      {/* Main content area */}
-      <div className="flex-grow flex flex-col w-[calc(100%-48px)]">
-        {/* Item title/text */}
-        <div className="font-medium text-gray-800 dark:text-gray-200 truncate">
-          {item.content.data.text}
+      {imageThumbnailUrl && (
+        <div className="mr-4 w-16 h-12 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 shrink-0">
+          <img
+            src={imageThumbnailUrl}
+            alt="Image preview"
+            className="w-full h-full object-cover"
+            draggable={false}
+          />
         </div>
+      )}
+      
+      {/* Main content area */}
+      <div className="flex-grow flex flex-col min-w-0">
+        {/* Item title/text */}
+        {getItemTitle() && (
+          <div className="font-medium text-gray-800 dark:text-gray-200 truncate">
+            {getItemTitle()}
+          </div>
+        )}
         
         {/* Item details for mobile view */}
         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 md:hidden truncate">

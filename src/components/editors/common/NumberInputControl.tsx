@@ -42,6 +42,9 @@ export default function NumberInputControl({
     onChange(newValue);
   };
 
+  const isAtMin = value <= minValue;
+  const isAtMax = value >= maxValue;
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputVal = e.target.value;
     
@@ -74,7 +77,12 @@ export default function NumberInputControl({
       <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-2">
         <button 
           onClick={handleDecrement}
-          className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg mr-2 transition-colors"
+          disabled={isAtMin}
+          className={`w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg mr-2 transition-colors ${
+            isAtMin 
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
+          }`}
           aria-label="Decrease value"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -96,7 +104,12 @@ export default function NumberInputControl({
         
         <button 
           onClick={handleIncrement}
-          className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg ml-2 transition-colors"
+          disabled={isAtMax}
+          className={`w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg ml-2 transition-colors ${
+            isAtMax 
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
+          }`}
           aria-label="Increase value"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
