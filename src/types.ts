@@ -35,6 +35,16 @@ export interface ImageContent {
 
 export type ImageContentDetails = { type: 'Image' } & ImageContent;
 
+export type ClockFormat = '24h' | '12h';
+
+export interface ClockContent {
+  format: ClockFormat;
+  show_seconds: boolean;
+  color: RGBColor;
+}
+
+export type ClockContentDetails = { type: 'Clock' } & ClockContent;
+
 /**
  * Enum representing content types supported by the system
  */
@@ -81,7 +91,7 @@ export type TextContentDetails = { type: 'Text' } & TextContent;
 /**
  * Union type for different content details based on content type
  */
-export type ContentDetails = TextContentDetails | ImageContentDetails;
+export type ContentDetails = TextContentDetails | ImageContentDetails | ClockContentDetails;
 
 /**
  * Content data structure that includes the type and specific details

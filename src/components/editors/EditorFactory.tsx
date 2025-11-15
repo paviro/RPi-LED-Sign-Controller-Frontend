@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import TextInputEditor from './input/TextInputEditor/TextInputEditor';
 import ImageInputEditor from './input/ImageInputEditor/ImageInputEditor';
+import ClockInputEditor from './input/ClockInputEditor/ClockInputEditor';
 import EditorShell from './common/EditorShell';
 import EditorUnavailable from './EditorUnavailable';
 import { fetchPlaylistItem, checkPreviewStatus, subscribeToEditorLockEvents } from '../../lib/api';
@@ -240,6 +241,15 @@ export default function EditorFactory({
         />
       ) : contentType === ContentType.Image ? (
         <ImageInputEditor 
+          itemId={itemId}
+          updateStatus={setStatus}
+          updateSaving={setIsSaving}
+          updateLoading={setIsLoading}
+          onBack={onBack}
+          registerExitPreview={handleRegisterExitPreview}
+        />
+      ) : contentType === ContentType.Clock ? (
+        <ClockInputEditor
           itemId={itemId}
           updateStatus={setStatus}
           updateSaving={setIsSaving}

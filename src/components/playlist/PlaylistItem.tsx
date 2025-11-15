@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
-import { ContentType, PlaylistItem as PlaylistItemType } from '../../types';
+import { ContentType, PlaylistItem as PlaylistItemType, ClockContentDetails, ClockFormat } from '../../types';
 import { getImageThumbnailUrl } from '../../lib/api';
 
 interface PlaylistItemProps {
@@ -25,6 +25,10 @@ export default function PlaylistItem({
 }: PlaylistItemProps) {
   // State for controlling visibility of mobile action buttons
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const clockDetails = item.content.data.type === ContentType.Clock ? (item.content.data as ClockContentDetails) : null;
+  const [clockLabel, setClockLabel] = useState(() =>
+    clockDetails ? formatClockTime(clockDetails.format, clockDetails.show_seconds, new Date()) : ''
+  );
   
   // State to track if screen is mobile-sized for responsive behavior
   const [, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 640);
@@ -57,6 +61,25 @@ export default function PlaylistItem({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!clockDetails) {
+      setClockLabel('');
+      return;
+    }
+
+    const updateLabel = () => {
+      setClockLabel(formatClockTime(clockDetails.format, clockDetails.show_seconds, new Date()));
+    };
+
+    updateLabel();
+    const intervalMs = clockDetails.show_seconds ? 1000 : 60000;
+    const intervalId = window.setInterval(updateLabel, intervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [clockDetails?.format, clockDetails?.show_seconds, item.id]);
   
   const formatSeconds = (value?: number | null) => {
     const seconds = typeof value === 'number' && Number.isFinite(value) ? value : 0;
@@ -106,7 +129,11 @@ export default function PlaylistItem({
       return `Static · ${formatSeconds(item.duration)}`;
     }
 
-    return `Static · ${formatSeconds(item.duration)}`;
+    if (details.type === ContentType.Clock) {
+      return `Clock · ${formatSeconds(item.duration)}`;
+    }
+
+    return formatSeconds(item.duration);
   };
   
   // Convert content type to title case for display
@@ -118,6 +145,9 @@ export default function PlaylistItem({
     const details = item.content.data;
     if (details.type === ContentType.Text) {
       return details.text;
+    }
+    if (details.type === ContentType.Clock) {
+      return clockLabel;
     }
     return '';
   };
@@ -294,3 +324,19 @@ export default function PlaylistItem({
     </div>
   );
 } 
+
+function formatClockTime(format: ClockFormat, showSeconds: boolean, now: Date) {
+  let hours = now.getHours();
+  let suffix = '';
+
+  if (format === '12h') {
+    suffix = hours >= 12 ? ' PM' : ' AM';
+    hours = hours % 12 || 12;
+  }
+
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  const seconds = now.getSeconds().toString().padStart(2, '0');
+  const hourString = format === '24h' ? hours.toString().padStart(2, '0') : hours.toString();
+
+  return showSeconds ? `${hourString}:${minutes}:${seconds}${suffix}` : `${hourString}:${minutes}${suffix}`;
+}
