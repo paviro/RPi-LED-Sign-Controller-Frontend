@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import TextEditor from '../../features/RichTextEditor/RichTextEditor';
 import ScrollControls from '../../features/ScrollControls/ScrollControls';
 import BorderEffectSelector from '../../features/BorderEffectSelector/BorderEffectSelector';
 import useTextPreview from './hooks/useTextPreview';
 import { useTextEditorForm } from './hooks/useTextEditorForm';
 import { useBorderEffects } from '../../features/BorderEffectSelector/hooks/useBorderEffects';
+import { ContentType, TextContentDetails } from '../../../../types';
 
 interface TextInputEditorProps {
   itemId: string | null;
@@ -66,6 +67,13 @@ export default function TextInputEditor({
     itemId, 
     onSuccess: handleSuccess
   });
+
+  const textContent = useMemo<TextContentDetails | undefined>(() => {
+    if (form.content?.type === ContentType.Text && form.content.data.type === 'Text') {
+      return form.content.data;
+    }
+    return undefined;
+  }, [form.content]);
   
   // When form data changes, mark the form as loaded if it contains data
   useEffect(() => {
@@ -202,7 +210,7 @@ export default function TextInputEditor({
       key={`editor-${form.id || 'new'}`}
     >
       <TextEditor 
-        initialValue={form.content?.data?.text || ''}
+        initialValue={textContent?.text || ''}
         onChange={updateText}
         onSegmentsChange={setTextSegments}
         selectedColor={textColor}
@@ -211,9 +219,9 @@ export default function TextInputEditor({
       />
         
       <ScrollControls 
-        isScrollEnabled={!!form.content?.data?.scroll}
+        isScrollEnabled={!!textContent?.scroll}
         onScrollChange={updateScroll}
-        scrollSpeed={form.content?.data?.speed || 50}
+        scrollSpeed={textContent?.speed || 50}
         onSpeedChange={updateScrollSpeed}
         duration={form.duration || 10}
         onDurationChange={updateDuration}

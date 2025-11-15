@@ -7,7 +7,7 @@ import {
   getImageUrl,
   fetchDisplayInfo
 } from '../../../../../lib/api';
-import { ContentType, PlaylistItem, DisplayInfo } from '../../../../../types';
+import { ContentType, PlaylistItem, DisplayInfo, RGBColor } from '../../../../../types';
 import { useBorderEffects } from '../../../features/BorderEffectSelector/hooks/useBorderEffects';
 import { EditorStatus, ImageDetails, Transform } from '../types';
 import { sanitizeTransform } from '../utils';
@@ -29,14 +29,14 @@ export interface ImageEditorFormResult {
   status: EditorStatus | null;
   previewImageUrl: string | null;
   borderEffectType: string;
-  gradientColors: string[];
+  gradientColors: RGBColor[];
   animation: ImageAnimationControls;
   handleFileChange: (files: FileList | null) => Promise<void>;
   handleBorderEffectChange: (effect: string) => void;
   handleDurationChange: (value: number) => void;
   handleAddGradientColor: () => void;
   handleRemoveGradientColor: (index: number) => void;
-  handleGradientColorEdit: (index: number, value: string) => void;
+  handleGradientColorEdit: (index: number, value: RGBColor) => void;
 }
 
 const defaultImageForm: Partial<PlaylistItem> = {
@@ -55,18 +55,34 @@ const defaultImageForm: Partial<PlaylistItem> = {
   }
 };
 
-const cloneDefaultForm = (): Partial<PlaylistItem> => ({
+const cloneDefaultForm = (): Partial<PlaylistItem> => {
+  if (!defaultImageForm.content) {
+    return { ...defaultImageForm };
+  }
+
+  const { content } = defaultImageForm;
+
+  if (content.data.type === 'Image') {
+    return {
   ...defaultImageForm,
-  content: defaultImageForm.content
-    ? {
-        ...defaultImageForm.content,
+      content: {
+        ...content,
         data: {
-          ...defaultImageForm.content.data,
-          transform: { ...defaultImageForm.content.data.transform }
+          ...content.data,
+          transform: { ...content.data.transform }
         }
       }
-    : undefined
-});
+    };
+  }
+
+  return {
+    ...defaultImageForm,
+    content: {
+      ...content,
+      data: { ...content.data }
+    }
+  };
+};
 
 export function useImageEditorForm({
   itemId,
@@ -338,4 +354,5 @@ export function useImageEditorForm({
     handleGradientColorEdit
   };
 }
+
 

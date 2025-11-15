@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { ContentType, PlaylistItem as PlaylistItemType } from '../../types';
 import { getImageUrl } from '../../lib/api';
@@ -156,11 +157,14 @@ export default function PlaylistItem({
       
       {imageThumbnailUrl && (
         <div className="mr-4 w-16 h-12 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 shrink-0">
-          <img
+          <Image
             src={imageThumbnailUrl}
             alt="Image preview"
+            width={64}
+            height={48}
             className="w-full h-full object-cover"
             draggable={false}
+            unoptimized
           />
         </div>
       )}

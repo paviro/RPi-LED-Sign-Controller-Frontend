@@ -33,6 +33,8 @@ export interface ImageContent {
   animation?: ImageAnimation | null;
 }
 
+export type ImageContentDetails = { type: 'Image' } & ImageContent;
+
 /**
  * Enum representing content types supported by the system
  */
@@ -74,12 +76,12 @@ export interface TextContent {
   text_segments?: TextSegment[];
 }
 
+export type TextContentDetails = { type: 'Text' } & TextContent;
+
 /**
  * Union type for different content details based on content type
  */
-export type ContentDetails = 
-  | ({ type: 'Text'; } & TextContent)
-  | ({ type: 'Image'; } & ImageContent);
+export type ContentDetails = TextContentDetails | ImageContentDetails;
 
 /**
  * Content data structure that includes the type and specific details

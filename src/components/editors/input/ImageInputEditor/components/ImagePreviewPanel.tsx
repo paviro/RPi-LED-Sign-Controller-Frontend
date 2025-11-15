@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DisplayInfo } from '../../../../../types';
 import { ImageDetails, Transform } from '../types';
@@ -264,10 +264,14 @@ export default function ImagePreviewPanel({
           (() => {
             const scaledWidthPx = Math.round(imageData.natural_width * renderTransform.scale);
             const scaledHeightPx = Math.round(imageData.natural_height * renderTransform.scale);
+            const intrinsicWidth = Math.max(1, scaledWidthPx);
+            const intrinsicHeight = Math.max(1, scaledHeightPx);
             return (
-              <img
+              <Image
                 src={previewImageUrl}
                 alt="Preview"
+                width={intrinsicWidth}
+                height={intrinsicHeight}
                 className="absolute cursor-move select-none"
                 style={{
                   width: `${(scaledWidthPx / panelInfo.width) * 100}%`,
@@ -279,6 +283,9 @@ export default function ImagePreviewPanel({
                   imageRendering: 'pixelated'
                 }}
                 draggable={false}
+                unoptimized
+                sizes="100vw"
+                priority={false}
               />
             );
           })()

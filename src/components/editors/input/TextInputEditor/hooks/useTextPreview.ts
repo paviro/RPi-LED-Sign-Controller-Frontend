@@ -5,7 +5,12 @@ import {
   updatePreviewContent,
   checkPreviewSessionOwnership
 } from '../../../../../lib/api';
-import { PlaylistItem, ContentType, BorderEffect } from '../../../../../types';
+import {
+  PlaylistItem,
+  ContentType,
+  BorderEffect,
+  TextContentDetails
+} from '../../../../../types';
 import PreviewState from '../../../common/previewState';
 
 /**
@@ -33,6 +38,11 @@ interface TextPreviewOptions {
 /**
  * Custom hook to manage preview functionality for text content
  */
+const isTextContent = (
+  content?: PlaylistItem['content']
+): content is { type: ContentType.Text; data: TextContentDetails } =>
+  content?.type === ContentType.Text && content.data.type === 'Text';
+
 export default function useTextPreview({
   formData,
   selectedColor,
@@ -47,12 +57,17 @@ export default function useTextPreview({
   // Track if component is mounted
   const mountedRef = useRef(true);
 
+  const textContent = useMemo(
+    () => (isTextContent(formData.content) ? formData.content.data : undefined),
+    [formData.content]
+  );
+
   /**
    * Creates a preview item from current form data
    */
   const getPreviewItem = useCallback((): Partial<PlaylistItem> => {
     // Determine if scrolling is enabled
-    const isScrolling = formData.content?.data?.scroll || false;
+    const isScrolling = textContent?.scroll ?? false;
     
     const previewItem: Partial<PlaylistItem> = {
       border_effect: getBorderEffectObject(),
@@ -60,10 +75,10 @@ export default function useTextPreview({
         type: ContentType.Text,
         data: {
           type: 'Text',
-          text: formData.content?.data?.text || 'Edit Mode',
+          text: textContent?.text || 'Edit Mode',
           scroll: isScrolling,
           color: selectedColor,
-          speed: formData.content?.data?.speed || 50,
+          speed: textContent?.speed || 50,
           text_segments: textSegments.length > 0 ? textSegments : undefined
         }
       }
@@ -80,12 +95,10 @@ export default function useTextPreview({
   }, [
     formData.duration,
     formData.repeat_count,
-    formData.content?.data?.text,
-    formData.content?.data?.scroll,
-    formData.content?.data?.speed,
     selectedColor,
     getBorderEffectObject,
-    textSegments
+    textSegments,
+    textContent
   ]);
 
   /**
@@ -315,12 +328,7 @@ export default function useTextPreview({
     if (!PreviewState.pingInterval) {
       PreviewState.startPinging();
     }
-  }, [
-    formData.content?.data?.text,
-    loading,
-    getPreviewItem,
-    debouncedUpdatePreview
-  ]);
+  }, [textContent?.text, loading, getPreviewItem, debouncedUpdatePreview]);
 
   // Watch for essential property changes and update immediately
   useEffect(() => {
@@ -332,8 +340,8 @@ export default function useTextPreview({
       PreviewState.startPinging();
     }
   }, [
-    formData.content?.data?.scroll,
-    formData.content?.data?.speed,
+    textContent?.scroll,
+    textContent?.speed,
     formData.duration,
     formData.repeat_count,
     selectedColor,
