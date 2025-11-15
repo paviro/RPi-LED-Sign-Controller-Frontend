@@ -13,6 +13,8 @@ import {
 import { ContentType, PlaylistItem, DisplayInfo } from '../../../../types';
 import useImagePreview from './hooks/useImagePreview';
 import NumberInputControl from '../../common/NumberInputControl';
+import BorderEffectSelector from '../../features/BorderEffectSelector/BorderEffectSelector';
+import { useBorderEffects } from '../../features/BorderEffectSelector/hooks/useBorderEffects';
 
 interface ImageInputEditorProps {
   itemId: string | null;
@@ -117,6 +119,19 @@ export default function ImageInputEditor({
   const timelineDurationMs = useMemo(
     () => Math.max(1, Math.round(timelineLengthSec * 1000)),
     [timelineLengthSec]
+  );
+  const {
+    borderEffectType,
+    setBorderEffectType,
+    gradientColors,
+    handleAddGradientColor,
+    handleRemoveGradientColor,
+    handleGradientColorEdit,
+    getBorderEffectObject
+  } = useBorderEffects(form.border_effect || undefined);
+  const selectedBorderEffect = useMemo(
+    () => getBorderEffectObject(),
+    [getBorderEffectObject]
   );
   const imageData = useMemo(() => {
     if (form.content?.type === ContentType.Image && form.content.data.type === 'Image') {
@@ -225,7 +240,10 @@ export default function ImageInputEditor({
   //   what we see locally, and we only persist animations on save.
   // - Always use the current renderTransform (scrubbed, static, or playing).
   const previewFormData = useMemo<Partial<PlaylistItem>>(() => {
-    const base = { ...form };
+    const base: Partial<PlaylistItem> = {
+      ...form,
+      border_effect: selectedBorderEffect
+    };
     if (base.content?.type === ContentType.Image && base.content.data.type === 'Image') {
       const includeAnimation =
         isPlaying && Boolean(preparedAnimation?.keyframes?.length);
@@ -243,7 +261,7 @@ export default function ImageInputEditor({
       };
     }
     return base;
-  }, [form, isPlaying, preparedAnimation, previewTransformForPanel]);
+  }, [form, isPlaying, preparedAnimation, previewTransformForPanel, selectedBorderEffect]);
 
   const {
     stopPreview: stopRemotePreview,
@@ -834,6 +852,14 @@ export default function ImageInputEditor({
     }));
   }, []);
 
+  const handleBorderEffectChange = useCallback(
+    (effect: string) => {
+      setBorderEffectType(effect);
+      refreshRemotePreview();
+    },
+    [setBorderEffectType, refreshRemotePreview]
+  );
+
   useEffect(() => {
     const handleSave = async () => {
       if (!imageData || !imageData.image_id) {
@@ -862,6 +888,7 @@ export default function ImageInputEditor({
             }
           };
         })();
+        payload.border_effect = selectedBorderEffect;
 
         if (itemId) {
           await updatePlaylistItem(itemId, payload);
@@ -891,7 +918,16 @@ export default function ImageInputEditor({
     return () => {
       document.removeEventListener('editor-save', listener);
     };
-  }, [ensureVirtualTimelineAnimation, form, imageData, itemId, onBack, stopRemotePreview, updateStatus]);
+  }, [
+    ensureVirtualTimelineAnimation,
+    form,
+    imageData,
+    itemId,
+    onBack,
+    selectedBorderEffect,
+    stopRemotePreview,
+    updateStatus
+  ]);
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent) => {
@@ -1385,6 +1421,15 @@ export default function ImageInputEditor({
           />
         </div>
       </div>
+
+      <BorderEffectSelector
+        selectedEffect={borderEffectType}
+        onEffectChange={handleBorderEffectChange}
+        gradientColors={gradientColors}
+        onGradientColorChange={handleGradientColorEdit}
+        onAddGradientColor={handleAddGradientColor}
+        onRemoveGradientColor={handleRemoveGradientColor}
+      />
     </div>
   );
 }
